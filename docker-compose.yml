@@ -1,0 +1,134 @@
+# FleetCare — Docker Compose (self-hosted)
+# Self-hosted. Funkčná verzia; pred ostrým nasadením zmeň tajomstvá a nasaď HTTPS.
+#
+# Služby: db · redis · backend (FastAPI) · worker (Celery) · beat (Celery scheduler) · frontend (nginx)
+# Kopíruj .env.example -> .env a vyplň tajomstvá pred `docker compose up -d --build`.
+
+name: fleetcare
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-fleetcare}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-fleetcare}
+  REDIS_URL: redis://redis:6379/0
+  JWT_SECRET: ${JWT_SECRET:-please-change-me}
+  JWT_ACCESS_TTL_MIN: ${JWT_ACCESS_TTL_MIN:-15}
+  JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS:-30}
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+  TZ: ${TZ:-Europe/Bratislava}
+  DEFAULT_LOCALE: ${DEFAULT_LOCALE:-sk}
+  ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+  ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@fleetcare.local}
+  SEED_DEMO: ${SEED_DEMO:-false}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_FROM: ${SMTP_FROM:-FleetCare <fleet@example.com>}
+  SMTP_ENCRYPTION: ${SMTP_ENCRYPTION:-tls}
+  MATRIX_ENABLED: ${MATRIX_ENABLED:-false}
+  MATRIX_HOMESERVER: ${MATRIX_HOMESERVER:-}
+  MATRIX_TOKEN: ${MATRIX_TOKEN:-}
+  MATRIX_DEFAULT_ROOM: ${MATRIX_DEFAULT_ROOM:-}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fleetcare}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-fleetcare}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fleetcare} -d ${POSTGRES_DB:-fleetcare}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [fleetcare]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [fleetcare]
+
+  backend:
+    build:
+      context: ./backend
+      args:
+        BUILD_VERSION: ${BUILD_VERSION:-dev}
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+      RUN_MIGRATIONS: "true"   # entrypoint spustí alembic upgrade head + seed
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://localhost:8000/api/health').status==200 else sys.exit(1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [fleetcare]
+
+  worker:
+    build:
+      context: ./backend
+      args:
+        BUILD_VERSION: ${BUILD_VERSION:-dev}
+    restart: unless-stopped
+    command: ["celery", "-A", "app.workers.celery_app.celery", "worker", "--loglevel=info"]
+    environment:
+      <<: *backend-env
+    depends_on:
+      backend:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks: [fleetcare]
+
+  beat:
+    build:
+      context: ./backend
+      args:
+        BUILD_VERSION: ${BUILD_VERSION:-dev}
+    restart: unless-stopped
+    command: ["celery", "-A", "app.workers.celery_app.celery", "beat", "--loglevel=info"]
+    environment:
+      <<: *backend-env
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [fleetcare]
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE: ${VITE_API_BASE:-/api}
+        VITE_BUILD_VERSION: ${BUILD_VERSION:-dev}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    networks: [fleetcare]
+
+volumes:
+  db_data:
+
+networks:
+  fleetcare:
+    driver: bridge

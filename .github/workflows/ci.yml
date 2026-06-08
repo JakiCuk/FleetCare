@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (lint + tests)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fleetcare
+          POSTGRES_PASSWORD: changeme
+          POSTGRES_DB: fleetcare
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fleetcare"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Both URLs point at the postgres service so the app's module-level engine
+      # and the test fixtures share one database.
+      DATABASE_URL: postgresql+asyncpg://fleetcare:changeme@localhost:5432/fleetcare
+      TEST_DATABASE_URL: postgresql+asyncpg://fleetcare:changeme@localhost:5432/fleetcare
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Ruff lint
+        run: ruff check app tests
+
+      - name: Pytest
+        run: pytest tests
+
+  migrations:
+    name: Migrations + seed (smoke)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fleetcare
+          POSTGRES_PASSWORD: changeme
+          POSTGRES_DB: fleetcare
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fleetcare"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Mirrors the container entrypoint: alembic upgrade head + python -m app.seed.
+      DATABASE_URL: postgresql+asyncpg://fleetcare:changeme@localhost:5432/fleetcare
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: changeme
+      ADMIN_EMAIL: admin@fleetcare.local
+      SEED_DEMO: "true"
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Alembic upgrade head
+        run: alembic upgrade head
+
+      - name: Seed (admin + settings + demo)
+        run: python -m app.seed
+
+      - name: Seed again (idempotency check)
+        run: python -m app.seed
+
+  frontend:
+    name: Frontend (lint + typecheck + tests + build)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        # No package-lock.json is committed, so use npm install (not npm ci).
+        run: npm install
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
