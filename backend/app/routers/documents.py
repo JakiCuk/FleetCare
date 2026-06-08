@@ -115,7 +115,7 @@ async def update_stk(
     return _out_stk(row, date.today())
 
 
-@router.delete("/stk/{stk_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/stk/{stk_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_stk(stk_id: int, current_user: CurrentUser, session: SessionDep):
     row = await _load_owned(session, current_user, TechnicalInspection, stk_id, "STK")
     await session.delete(row)
@@ -168,7 +168,7 @@ async def update_insurance(
     return _out_insurance(row, date.today())
 
 
-@router.delete("/insurance/{insurance_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/insurance/{insurance_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_insurance(
     insurance_id: int, current_user: CurrentUser, session: SessionDep
 ):
@@ -223,7 +223,7 @@ async def update_vignette(
     return _out_vignette(row, date.today())
 
 
-@router.delete("/vignettes/{vignette_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/vignettes/{vignette_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_vignette(
     vignette_id: int, current_user: CurrentUser, session: SessionDep
 ):

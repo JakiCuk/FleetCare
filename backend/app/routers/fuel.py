@@ -100,7 +100,7 @@ async def update_fuel(
     return _out(row, cmap.get(row.id))
 
 
-@router.delete("/fuel/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/fuel/{record_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_fuel(record_id: int, current_user: CurrentUser, session: SessionDep):
     row = await _load_owned(session, current_user, record_id)
     await session.delete(row)

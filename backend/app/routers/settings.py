@@ -146,7 +146,7 @@ async def export_settings(_: CurrentAdmin, session: SessionDep) -> dict:
     return settings_service.to_public(cfg)
 
 
-@router.post("/wipe", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/wipe", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def wipe(payload: WipeRequest, admin: CurrentAdmin, session: SessionDep) -> None:
     """Destructively delete all cars (cascades records) — admin + confirmation."""
     if not payload.confirm:

@@ -173,7 +173,7 @@ async def update_tire_set(
     return await _tire_set_out(session, tire_set)
 
 
-@router.delete("/tires/{set_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/tires/{set_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_tire_set(set_id: int, current_user: CurrentUser, session: SessionDep):
     tire_set = await _load_owned_set(session, current_user, set_id)
     await session.delete(tire_set)

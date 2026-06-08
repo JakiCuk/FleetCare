@@ -21,8 +21,7 @@ beforeAll(() => {
     unobserve() {}
     disconnect() {}
   }
-  // @ts-expect-error assigning a test stub onto the global
-  globalThis.ResizeObserver = ResizeObserverStub;
+  globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
 });
 
 const trend: TireTrend = {

@@ -76,7 +76,7 @@ async def update_expense(
     return ExpenseOut.model_validate(row)
 
 
-@router.delete("/expenses/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/expenses/{expense_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_expense(
     expense_id: int, current_user: CurrentUser, session: SessionDep
 ):

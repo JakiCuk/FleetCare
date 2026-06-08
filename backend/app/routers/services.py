@@ -113,7 +113,7 @@ async def update_service(
     return _record_out(row)
 
 
-@router.delete("/services/{service_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/services/{service_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_service(
     service_id: int, current_user: CurrentUser, session: SessionDep
 ):
@@ -173,7 +173,7 @@ async def update_interval(
     return _interval_out(row, current_km, date.today())
 
 
-@router.delete("/service-intervals/{interval_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/service-intervals/{interval_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_interval(
     interval_id: int, current_user: CurrentUser, session: SessionDep
 ):

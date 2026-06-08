@@ -177,7 +177,7 @@ async def update_car(
     return serialize_car(car)
 
 
-@router.delete("/{car_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{car_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_car(
     car_id: int, current_user: CurrentUser, session: SessionDep
 ) -> None:
