@@ -87,7 +87,7 @@ export function TireSetModal({ open, carId, defaultOdometer, onClose, onSaved }:
             <Select value={season} onChange={(e) => setSeason(e.target.value as TireSeason)}>
               <option value="summer">{t('tires.seasonSummer')}</option>
               <option value="winter">{t('tires.seasonWinter')}</option>
-              <option value="allseason">{t('tires.seasonAllseason')}</option>
+              <option value="all_season">{t('tires.seasonAllseason')}</option>
             </Select>
           </FormField>
           <FormField label={t('tires.mountedAt')}>

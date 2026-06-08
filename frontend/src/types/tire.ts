@@ -1,4 +1,4 @@
-export type TireSeason = 'summer' | 'winter' | 'allseason';
+export type TireSeason = 'summer' | 'winter' | 'all_season';
 
 export interface TireMeasurement {
   id?: number;

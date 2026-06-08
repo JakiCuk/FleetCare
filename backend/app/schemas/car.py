@@ -6,7 +6,6 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.dashboard import OverdueFlags
 from app.schemas.document import InsuranceOut, STKOut, VignetteOut
 
 
@@ -74,13 +73,19 @@ class NextServiceSummary(BaseModel):
 
 
 class CarDetail(CarOut):
-    """Car + aggregated document/service/tire fields (dashboard parity)."""
+    """Car + aggregated document/service/tire fields (dashboard parity).
 
-    stk: list[STKOut] = Field(default_factory=list)
-    pzp: list[InsuranceOut] = Field(default_factory=list)
-    kasko: list[InsuranceOut] = Field(default_factory=list)
+    ``stk``/``pzp``/``kasko`` are the single *current* (latest valid_until)
+    records used by the Overview "upcoming deadlines" widget; the full history
+    is available via the per-document endpoints. ``overdue`` is a simple flag
+    (true if any tracked item is past due), matching the dashboard card.
+    """
+
+    stk: STKOut | None = None
+    pzp: InsuranceOut | None = None
+    kasko: InsuranceOut | None = None
     vignettes: list[VignetteOut] = Field(default_factory=list)
     active_tire_set: TireSummary | None = None
     next_service: NextServiceSummary | None = None
-    overdue: OverdueFlags
+    overdue: bool = False
     monthly_cost: float

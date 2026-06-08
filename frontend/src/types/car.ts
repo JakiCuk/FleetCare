@@ -1,5 +1,3 @@
-import type { TireSet } from './tire';
-
 export interface Car {
   id: number;
   name: string;
@@ -34,12 +32,21 @@ export interface NextServiceSummary {
   label: string;
 }
 
+/** Compact active-tire-set summary embedded in CarDetail (full set via /tires). */
+export interface ActiveTireSetSummary {
+  id: number;
+  name: string;
+  season: string;
+  avg_tread_mm: number | null;
+  projection_date: string | null;
+}
+
 export interface CarDetail extends Car {
   stk: DocumentSummary | null;
   pzp: DocumentSummary | null;
   kasko: DocumentSummary | null;
   vignettes: VignetteSummary[];
-  active_tire_set: TireSet | null;
+  active_tire_set: ActiveTireSetSummary | null;
   next_service: NextServiceSummary | null;
   overdue: boolean;
   monthly_cost: number;

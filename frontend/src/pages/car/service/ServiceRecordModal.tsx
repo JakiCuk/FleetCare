@@ -336,7 +336,7 @@ export function ServiceRecordModal({
                 <option value="">—</option>
                 <option value="summer">{t('tires.seasonSummer')}</option>
                 <option value="winter">{t('tires.seasonWinter')}</option>
-                <option value="allseason">{t('tires.seasonAllseason')}</option>
+                <option value="all_season">{t('tires.seasonAllseason')}</option>
               </Select>
             </FormField>
           </div>

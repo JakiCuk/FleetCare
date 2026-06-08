@@ -19,5 +19,5 @@ export const settingsApi = {
 
   exportUrl: () => `${import.meta.env.VITE_API_BASE || '/api'}/settings/export`,
 
-  wipe: () => api.post<void>('/settings/wipe').then((r) => r.data),
+  wipe: () => api.post<void>('/settings/wipe', { confirm: true }).then((r) => r.data),
 };

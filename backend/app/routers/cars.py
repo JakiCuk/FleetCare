@@ -116,9 +116,13 @@ async def get_car(
         )
     ).scalars().all()
 
-    stk = [_out_stk(s, today) for s in stk_rows]
-    pzp = [_out_insurance(i, today) for i in ins_rows if i.type == "PZP"]
-    kasko = [_out_insurance(i, today) for i in ins_rows if i.type == "KASKO"]
+    # Single current (latest valid_until) record per document type for the
+    # Overview widget; rows are ordered valid_until DESC above.
+    pzp_rows = [i for i in ins_rows if i.type == "PZP"]
+    kasko_rows = [i for i in ins_rows if i.type == "KASKO"]
+    stk = _out_stk(stk_rows[0], today) if stk_rows else None
+    pzp = _out_insurance(pzp_rows[0], today) if pzp_rows else None
+    kasko = _out_insurance(kasko_rows[0], today) if kasko_rows else None
     vignettes = [_out_vignette(v, today) for v in vig_rows]
 
     active_tire = None
@@ -156,7 +160,7 @@ async def get_car(
         vignettes=vignettes,
         active_tire_set=active_tire,
         next_service=next_service,
-        overdue=agg.overdue,
+        overdue=agg.overdue.any,
         monthly_cost=agg.monthly_cost,
     )
 

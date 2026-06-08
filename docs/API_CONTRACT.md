@@ -39,8 +39,19 @@
 - `DELETE /api/cars/{id}` → `204`
 
 **Car:** `{ id, name, full_name, make, model, year, license_plate, vin, current_odometer_km }`
-**CarDetail** = Car + `{ stk, pzp, kasko, vignettes:[], active_tire_set, next_service, overdue, monthly_cost }`
-(agregované polia ako v dashboard položke).
+**CarDetail** = Car + aggregované polia (parita s dashboard kartou):
+```
+{ ...Car,
+  stk:   STK|null,            // jediný AKTUÁLNY záznam (najneskorší valid_until) alebo null
+  pzp:   Insurance|null,      // dtto
+  kasko: Insurance|null,      // dtto
+  vignettes: [Vignette],      // všetky platné/aktuálne vinetky
+  active_tire_set: { id, name, season, avg_tread_mm, projection_date } | null,
+  next_service: { name, label, km_left, days_left } | null,
+  overdue: bool,              // true ak je hocijaká sledovaná položka po termíne
+  monthly_cost: number }
+```
+Plná história dokumentov je cez `/api/cars/{id}/stk|insurance|vignettes`.
 
 ## Odometer
 - `GET /api/cars/{id}/odometer` → `200 [{ id, reading_km, recorded_at, note }]`
