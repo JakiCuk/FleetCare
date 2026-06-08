@@ -1,0 +1,7 @@
+# FleetCare backend — test-only dependencies (Python 3.12).
+# Installed in CI alongside requirements.txt; never required at runtime.
+pytest==8.2.2
+pytest-asyncio==0.23.8
+anyio==4.4.0
+httpx==0.27.0
+ruff==0.4.10
