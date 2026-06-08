@@ -37,19 +37,18 @@ BUILD_VERSION=$(date -u +%Y%m%d%H%M) docker compose up -d --build
 V GHCR sa nastavuje automaticky (workflow „Publish Docker images (GHCR)").
 
 ## Beh z hotových GHCR images (GitHub Packages)
-Namiesto lokálneho buildu sa dajú stiahnuť publikované images z GHCR
-(`ghcr.io/<owner>/fleetcare-backend` a `…-frontend`). Po prvom behu workflowu
-`.github/workflows/docker-publish.yml` (push na `main` / `claude/**`) sa objavia
-v sekcii **Packages** repozitára.
+Celý stack (DB, Redis, backend, worker, beat, frontend) sa spustí z publikovaných
+images **jedným príkazom** — netreba lokálny build:
 ```bash
-docker login ghcr.io               # ak je balík privátny (heslo = PAT s read:packages)
-export GHCR_OWNER=jakicuk           # GHCR namespace, malými písmenami
-export BUILD_VERSION=latest         # alebo konkrétny yyyymmddhhmm tag
-docker compose -f docker-compose.yml -f docker-compose.ghcr.yml pull
-docker compose -f docker-compose.yml -f docker-compose.ghcr.yml up -d
+docker login ghcr.io        # len ak je balík privátny (heslo = PAT s read:packages)
+docker compose -f docker-compose.ghcr.yml up -d
 ```
-> Novo vytvorené balíky sú **privátne** — buď sa pri pulle prihlás (`docker login ghcr.io`),
-> alebo ich v GitHube prepni na *Public* (Package → Settings).
+> `docker pull ghcr.io/<owner>/fleetcare-backend:latest` stiahne len **jeden** zo šiestich
+> kontajnerov; appka potrebuje celý stack, preto ho `docker compose` poskladá naraz.
+> Voliteľne v `.env`: `GHCR_OWNER` (default `jakicuk`), `IMAGE_TAG` (default `latest`, alebo
+> konkrétny `yyyymmddhhmm`). Novo vytvorené balíky sú **privátne** — prihlás sa, alebo ich
+> v GitHube prepni na *Public* (Package → Settings). Images sa publikujú pri pushi na `main`,
+> pri tagu `v*`, alebo ručne cez *Run workflow*.
 
 ## Komponenty
 | Služba | Popis |

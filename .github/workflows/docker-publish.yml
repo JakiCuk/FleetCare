@@ -2,15 +2,15 @@
 # Images: ghcr.io/<owner>/fleetcare-backend and .../fleetcare-frontend
 # Tags:   <yyyymmddhhmm> (build time, UTC) + latest
 #
-# Pull & run afterwards (see docker-compose.ghcr.yml):
-#   docker login ghcr.io        # if the package is private
-#   BUILD_VERSION=latest docker compose -f docker-compose.yml -f docker-compose.ghcr.yml up -d
+# Pull & run afterwards — one command (see docker-compose.ghcr.yml):
+#   docker login ghcr.io        # only if the package is private
+#   docker compose -f docker-compose.ghcr.yml up -d
 
 name: Publish Docker images (GHCR)
 
 on:
   push:
-    branches: [main, "claude/**"]
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
 
