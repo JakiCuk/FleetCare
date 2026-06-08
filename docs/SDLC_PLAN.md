@@ -86,6 +86,6 @@ Keďže sa nič nespúšťa, agenti môžu bežať s maximálnou paralelizáciou
 ## Definícia hotového (DoD) pre prvý úplný prechod
 - Repozitár obsahuje kompletnú štruktúru (backend + frontend + docker + CI + docs).
 - Kód je vnútorne konzistentný s kontraktmi (kompiluje „by construction"; netestované na PC).
-- README jasne uvádza stav „vo vývoji — nepoužívať".
+- README uvádza, že ide o funkčnú verziu v0.1, ktorá sa ďalej aktívne vyvíja.
 - Migrácie pokrývajú celú schému; seed vytvorí admina a default nastavenia.
 - CI workflow je nakonfigurované (beh na GitHube, nie na PC).

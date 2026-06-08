@@ -60,7 +60,7 @@ log = structlog.get_logger("fleetcare")
 app = FastAPI(
     title="FleetCare API",
     version=health.VERSION,
-    description="Home car-fleet management API (in development).",
+    description="Home car-fleet management API.",
 )
 # slowapi: register the shared limiter + its middleware. The per-route
 # @limiter.limit decorators on /api/auth/login and /api/auth/refresh do the work.

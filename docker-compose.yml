@@ -1,5 +1,5 @@
 # FleetCare — Docker Compose (self-hosted)
-# Stav: VO VÝVOJI — nepoužívať v produkcii. Nasadenie vykonáva používateľ ručne.
+# Self-hosted. Funkčná verzia; pred ostrým nasadením zmeň tajomstvá a nasaď HTTPS.
 #
 # Služby: db · redis · backend (FastAPI) · worker (Celery) · beat (Celery scheduler) · frontend (nginx)
 # Kopíruj .env.example -> .env a vyplň tajomstvá pred `docker compose up -d --build`.

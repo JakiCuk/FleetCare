@@ -6,17 +6,20 @@
 
 ---
 
-## ⚠️ Stav projektu: VO VÝVOJI — zatiaľ NEPOUŽÍVAŤ
+## ✅ Stav projektu: funkčná verzia (v0.1)
 
-**Tento projekt je v aktívnom vývoji a momentálne NIE JE pripravený na produkčné použitie.**
-Funkcionalita je neúplná, môže sa meniť bez upozornenia, schéma databázy ešte nie je
-stabilná a bezpečnostné nastavenia (heslá, tokeny, SMTP/Matrix prístupy) sú zatiaľ len
-ukážkové. Nenasadzujte ho na verejne dostupný server a nevkladajte doň reálne citlivé
-údaje, kým nebude vydaná prvá stabilná verzia.
+FleetCare je **plne funkčný** — celý stack beží v Dockeri (frontend, REST API, Celery
+workers, PostgreSQL, Redis). Funguje prihlásenie (JWT), evidencia áut a všetkých záznamov,
+grafy, predikcia opotrebenia pneumatík aj denné notifikácie. Projekt sa **aktívne vyvíja a
+ďalšie funkcie pribúdajú**.
 
-> 🇬🇧 **Project status: WORK IN PROGRESS — do not use yet.** FleetCare is under active
-> development, incomplete, and not production-ready. Schema, APIs and security defaults
-> may change at any time.
+> 🔒 **Self-hosted:** pred vystavením na internet zmeň predvolené tajomstvá (`JWT_SECRET`,
+> `POSTGRES_PASSWORD`, `ADMIN_PASSWORD`), nasaď HTTPS a uzamkni `CORS_ORIGINS`. Používaš na
+> vlastné riziko, bez záruky.
+
+> 🇬🇧 **Status: functional (v0.1).** FleetCare runs as a complete Docker stack and is usable;
+> it is **actively developed and more features are being added**. Self-hosted — change the
+> default secrets and put it behind HTTPS before exposing it.
 
 ---
 
@@ -92,17 +95,23 @@ zjazdenie pneumatík.
                   └────────────┘
 ```
 
-## Spustenie (po dokončení vývoja)
+## Spustenie (Docker)
 
-> Nasadenie sa vykonáva ručne. Lokálne testovanie počas tejto fázy vývoja **nie je súčasťou**
-> workflowu — kód sa píše a verzuje v GitHube.
-
+**Build lokálne:**
 ```bash
 cp .env.example .env      # vyplň tajomstvá (DB heslo, JWT secret, SMTP, Matrix)
 docker compose up -d --build
-# Frontend:  http://localhost:8080
-# Backend:   http://localhost:8000  (health: GET /api/health)
+# Frontend:  http://localhost:8080   ·   Backend health: http://localhost:8000/api/health
 ```
+
+**Alebo hotové images z GHCR (bez buildu):**
+```bash
+docker login ghcr.io      # len ak je balík privátny
+docker compose -f docker-compose.ghcr.yml up -d
+```
+
+Prihlás sa ako `admin` / `ADMIN_PASSWORD`. Verzia buildu (`yyyymmddhhmm`) je v
+`GET /api/health` (pole `build`) aj v pätičke sidebaru. Viac v [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Štruktúra repozitára
 
@@ -123,7 +132,7 @@ FleetCare/
 - [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) — REST API kontrakt
 - [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — farby, komponenty, UI
 - [`docs/SDLC_PLAN.md`](docs/SDLC_PLAN.md) — plán podľa SDLC + rozdelenie práce
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — manuálne nasadenie
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — nasadenie (Docker / GHCR)
 
 ## Licencia
 

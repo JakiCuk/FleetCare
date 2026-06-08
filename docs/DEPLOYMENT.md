@@ -1,8 +1,8 @@
-# FleetCare — Nasadenie (manuálne)
+# FleetCare — Nasadenie (Docker)
 
-> ⚠️ Projekt je **vo vývoji**. Tento návod je pripravený pre budúce nasadenie; nasadenie
-> vykonáva používateľ ručne (mimo automatizovaného workflowu). Počas vývoja sa **netestuje
-> na PC**.
+> ✅ FleetCare je **funkčný** a beží ako kompletný Docker stack. Nasadenie je samohostené;
+> pred vystavením na internet zmeň predvolené tajomstvá a nasaď HTTPS. Aplikácia sa ďalej
+> vyvíja — pribúdajú nové funkcie.
 
 ## Predpoklady
 - Docker + Docker Compose v2.

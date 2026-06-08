@@ -1,5 +1,5 @@
 # FleetCare frontend — multi-stage build (node build → nginx:alpine)
-# Stav: VO VÝVOJI — nepoužívať v produkcii bez revízie.
+# Self-hosted build. Pre produkciu nasaď za HTTPS reverznú proxy.
 
 # ── Stage 1: build ────────────────────────────────────────────────────
 FROM node:20-alpine AS build
