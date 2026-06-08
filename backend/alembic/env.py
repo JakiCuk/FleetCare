@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -19,9 +20,15 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
+# When alembic runs as a console script, sys.path[0] is alembic's bin directory,
+# not the project root, so ``import app`` would fail (ModuleNotFoundError). Add
+# the directory that contains this ``alembic/`` folder (the backend project
+# root) to sys.path before importing the application package.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 # Importing app.models registers every ORM class on Base.metadata.
-from app import models  # noqa: F401  (side-effect import: populates metadata)
-from app.database import Base
+from app import models  # noqa: E402, F401  (side-effect import: populates metadata)
+from app.database import Base  # noqa: E402
 
 # Alembic Config object, providing access to values within alembic.ini.
 config = context.config
