@@ -1,0 +1,15 @@
+{% extends "_base.j2" %}
+{% set lang = "sk" %}
+{% block content %}
+  <h2 style="margin:0 0 12px;font-size:20px;">Blíži sa termín dokladu</h2>
+  <p style="margin:0 0 16px;font-size:14px;line-height:1.6;">
+    Pre vozidlo <strong>{{ car_name }}</strong> sa blíži platnosť dokladu
+    <strong>{{ item_name_sk }}</strong>.
+  </p>
+  <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:14px;">
+    <tr><td style="padding:4px 16px 4px 0;color:#64748b;">Doklad</td><td style="padding:4px 0;font-weight:600;">{{ item_label }}</td></tr>
+    <tr><td style="padding:4px 16px 4px 0;color:#64748b;">Platnosť do</td><td style="padding:4px 0;font-weight:600;">{{ valid_until }}</td></tr>
+    <tr><td style="padding:4px 16px 4px 0;color:#64748b;">Zostáva</td><td style="padding:4px 0;font-weight:600;color:#d97706;">{{ days_left }} dní</td></tr>
+  </table>
+{% endblock %}
+{% block footer %}Túto správu poslal FleetCare automaticky. Skontrolujte termín vo svojom paneli.{% endblock %}
