@@ -1,6 +1,11 @@
-"""Auth endpoints: login, refresh, logout, me."""
+"""Auth endpoints: login, refresh, logout, me.
 
-from __future__ import annotations
+NOTE: this module intentionally does NOT use ``from __future__ import annotations``.
+The login/refresh endpoints are wrapped by slowapi's ``@limiter.limit`` decorator;
+with stringized annotations FastAPI resolves body types against slowapi's module
+globals instead of this one, which breaks forward-ref resolution (e.g. LoginRequest).
+Keeping real (eager) annotations avoids that.
+"""
 
 import jwt
 from fastapi import APIRouter, Cookie, HTTPException, Request, Response, status
