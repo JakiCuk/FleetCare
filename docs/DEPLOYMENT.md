@@ -25,6 +25,32 @@ curl -s http://localhost:8000/api/health   # -> {"status":"ok",...}
 
 Otvor `http://localhost:8080` a prihlás sa ako `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
 
+## Verzia buildu (yyyymmddhhmm)
+Každý image nesie verziu vo formáte `yyyymmddhhmm` (UTC, čas buildu):
+- **Backend** — `GET /api/health` → pole `build` (napr. `"build":"202606081345"`).
+- **Frontend** — vľavo dole v sidebare „build …".
+
+Lokálny build dostane verziu z premennej `BUILD_VERSION` (default `dev`):
+```bash
+BUILD_VERSION=$(date -u +%Y%m%d%H%M) docker compose up -d --build
+```
+V GHCR sa nastavuje automaticky (workflow „Publish Docker images (GHCR)").
+
+## Beh z hotových GHCR images (GitHub Packages)
+Namiesto lokálneho buildu sa dajú stiahnuť publikované images z GHCR
+(`ghcr.io/<owner>/fleetcare-backend` a `…-frontend`). Po prvom behu workflowu
+`.github/workflows/docker-publish.yml` (push na `main` / `claude/**`) sa objavia
+v sekcii **Packages** repozitára.
+```bash
+docker login ghcr.io               # ak je balík privátny (heslo = PAT s read:packages)
+export GHCR_OWNER=jakicuk           # GHCR namespace, malými písmenami
+export BUILD_VERSION=latest         # alebo konkrétny yyyymmddhhmm tag
+docker compose -f docker-compose.yml -f docker-compose.ghcr.yml pull
+docker compose -f docker-compose.yml -f docker-compose.ghcr.yml up -d
+```
+> Novo vytvorené balíky sú **privátne** — buď sa pri pulle prihlás (`docker login ghcr.io`),
+> alebo ich v GitHube prepni na *Public* (Package → Settings).
+
 ## Komponenty
 | Služba | Popis |
 |---|---|

@@ -55,6 +55,10 @@ export function Sidebar() {
           </div>
         </div>
       )}
+
+      <div className="px-4 pb-3 text-[10px] text-white/30">
+        build {import.meta.env.VITE_BUILD_VERSION || 'dev'}
+      </div>
     </aside>
   );
 }

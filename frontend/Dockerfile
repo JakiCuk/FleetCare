@@ -9,6 +9,10 @@ WORKDIR /app
 ARG VITE_API_BASE=/api
 ENV VITE_API_BASE=$VITE_API_BASE
 
+# Build version (yyyymmddhhmm), injected by CI; "dev" for local builds.
+ARG VITE_BUILD_VERSION=dev
+ENV VITE_BUILD_VERSION=$VITE_BUILD_VERSION
+
 COPY package.json package-lock.json* ./
 RUN npm ci || npm install
 

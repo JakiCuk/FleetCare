@@ -50,9 +50,6 @@ jobs:
           pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Ruff lint
-        # Configured via pyproject [tool.ruff]. Style nits in app code (not owned
-        # by the test suite) should not block the test signal.
-        continue-on-error: true
         run: ruff check app tests
 
       - name: Pytest

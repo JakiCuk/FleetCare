@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     # ── Runtime ─────────────────────────────────────────────────────────
     run_migrations: bool = False
 
+    # ── Build / version ─────────────────────────────────────────────────
+    build_version: str = "dev"  # yyyymmddhhmm, stamped at image build time
+
     @property
     def cors_origins_list(self) -> list[str]:
         """CORS origins as a clean list (comma-separated env value)."""

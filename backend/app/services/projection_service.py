@@ -17,7 +17,7 @@ from datetime import date, timedelta
 import numpy as np
 
 from app.models.odometer import OdometerReading
-from app.models.tire import TireMeasurement, TireSet
+from app.models.tire import TireMeasurement
 
 REFERENCE_TREAD_MM = 1.6
 

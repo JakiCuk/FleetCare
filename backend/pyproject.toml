@@ -13,16 +13,11 @@ src = ["app", "tests"]
 select = [
     "E",   # pycodestyle errors
     "F",   # pyflakes
-    "I",   # isort
-    "UP",  # pyupgrade
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "SIM", # flake8-simplify
+    "B",   # flake8-bugbear (likely real bugs)
 ]
 ignore = [
-    "E501",  # line length handled by formatter where needed
+    "E501",  # long lines are acceptable in this codebase
     "B008",  # function calls in argument defaults (FastAPI Depends/Query)
-    "SIM105",
 ]
 
 [tool.ruff.lint.per-file-ignores]

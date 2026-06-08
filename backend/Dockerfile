@@ -20,6 +20,10 @@ RUN apt-get update \
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
+# Build version (yyyymmddhhmm), injected by CI; "dev" for local builds.
+ARG BUILD_VERSION=dev
+ENV BUILD_VERSION=$BUILD_VERSION
+
 COPY . .
 
 RUN chmod +x ./entrypoint.sh

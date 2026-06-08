@@ -41,4 +41,5 @@ async def health() -> dict:
         "db": db_status,
         "redis": redis_status,
         "version": VERSION,
+        "build": settings.build_version,
     }

@@ -61,6 +61,8 @@ services:
   backend:
     build:
       context: ./backend
+      args:
+        BUILD_VERSION: ${BUILD_VERSION:-dev}
     restart: unless-stopped
     environment:
       <<: *backend-env
@@ -83,6 +85,8 @@ services:
   worker:
     build:
       context: ./backend
+      args:
+        BUILD_VERSION: ${BUILD_VERSION:-dev}
     restart: unless-stopped
     command: ["celery", "-A", "app.workers.celery_app.celery", "worker", "--loglevel=info"]
     environment:
@@ -97,6 +101,8 @@ services:
   beat:
     build:
       context: ./backend
+      args:
+        BUILD_VERSION: ${BUILD_VERSION:-dev}
     restart: unless-stopped
     command: ["celery", "-A", "app.workers.celery_app.celery", "beat", "--loglevel=info"]
     environment:
@@ -111,6 +117,7 @@ services:
       context: ./frontend
       args:
         VITE_API_BASE: ${VITE_API_BASE:-/api}
+        VITE_BUILD_VERSION: ${BUILD_VERSION:-dev}
     restart: unless-stopped
     depends_on:
       backend:
