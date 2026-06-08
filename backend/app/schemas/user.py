@@ -21,7 +21,10 @@ class UserOut(BaseModel):
 
     id: int
     username: str
-    email: EmailStr
+    # Output is not strictly re-validated: already-stored admin emails may use
+    # reserved/special-use domains (e.g. the default admin@fleetcare.local), which
+    # EmailStr would reject. Input is still validated via UserCreate/UserUpdate.
+    email: str
     full_name: str | None = None
     is_admin: bool
     is_active: bool
