@@ -42,8 +42,8 @@ function flatten(obj: Record<string, unknown>, prefix = ''): Set<string> {
 }
 
 describe('service-book i18n', () => {
-  const skSvc = sk.service as Record<string, Record<string, string>>;
-  const enSvc = en.service as Record<string, Record<string, string>>;
+  const skSvc = sk.service as unknown as Record<string, Record<string, string>>;
+  const enSvc = en.service as unknown as Record<string, Record<string, string>>;
 
   it('has every "performed" item in both SK and EN', () => {
     for (const key of PERFORMED) {
