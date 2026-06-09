@@ -38,6 +38,7 @@ function thisYearRange(): { from_date: string; to_date: string } {
 }
 
 /** Compute the default ("this month") preset value. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function defaultPeriod(): PeriodValue {
   return { ...thisMonthRange(), group_by: 'month' };
 }

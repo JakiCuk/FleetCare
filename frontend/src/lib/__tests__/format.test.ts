@@ -8,7 +8,7 @@ afterEach(() => {
 /** Normalize to digits + a single '.' decimal separator, dropping spaces/symbols. */
 function norm(s: string): string {
   return s
-    .replace(/ /g, '')
+    .replace(/ /g, '')
     .replace(/[^0-9.,]/g, '')
     .replace(',', '.');
 }
