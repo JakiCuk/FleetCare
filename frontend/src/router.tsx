@@ -31,7 +31,14 @@ export const router = createBrowserRouter([
           </AdminRoute>
         ),
       },
-      { path: 'settings', element: <SettingsPage /> },
+      {
+        path: 'settings',
+        element: (
+          <AdminRoute>
+            <SettingsPage />
+          </AdminRoute>
+        ),
+      },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

@@ -22,6 +22,12 @@ export const tiresApi = {
   addMeasurement: (setId: number, body: TireMeasurement) =>
     api.post<TireMeasurement>(`/tires/${setId}/measurements`, body).then((r) => r.data),
 
+  updateMeasurement: (id: number, body: Partial<TireMeasurement>) =>
+    api.patch<TireMeasurement>(`/tires/measurements/${id}`, body).then((r) => r.data),
+
+  removeMeasurement: (id: number) =>
+    api.delete<void>(`/tires/measurements/${id}`).then((r) => r.data),
+
   trend: (setId: number) =>
     api.get<TireTrend>(`/tires/${setId}/trend`).then((r) => r.data),
 };

@@ -29,7 +29,21 @@ export function formatMoney(
   return new Intl.NumberFormat(activeLocale(), {
     style: 'currency',
     currency,
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+/** Price with 4 decimals (e.g. fuel price per liter: "1,6890 €"). */
+export function formatPrice(
+  amount: number | null | undefined,
+  currency = 'EUR',
+): string {
+  if (amount === null || amount === undefined) return '—';
+  return new Intl.NumberFormat(activeLocale(), {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
   }).format(amount);
 }
 

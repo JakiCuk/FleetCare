@@ -5,6 +5,7 @@ import { carsApi } from '@/api/cars';
 import { apiErrorMessage } from '@/api/client';
 import { useApi } from '@/hooks/useApi';
 import { useUiStore } from '@/stores/uiStore';
+import { useAuthStore } from '@/stores/authStore';
 import {
   Btn,
   ErrorState,
@@ -31,6 +32,7 @@ export default function CarDetailPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const pushToast = useUiStore((s) => s.pushToast);
+  const user = useAuthStore((s) => s.user);
   const params = useParams();
   const carId = Number(params.id);
 
@@ -89,9 +91,11 @@ export default function CarDetailPage() {
             <Btn variant="secondary" onClick={() => setEditOpen(true)}>
               {t('car.edit')}
             </Btn>
-            <Btn variant="danger" onClick={deleteCar}>
-              {t('car.delete')}
-            </Btn>
+            {user?.is_admin && (
+              <Btn variant="danger" onClick={deleteCar}>
+                {t('car.delete')}
+              </Btn>
+            )}
           </>
         }
       />

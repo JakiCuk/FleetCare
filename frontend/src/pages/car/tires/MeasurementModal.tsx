@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { tiresApi } from '@/api/tires';
 import { apiErrorMessage } from '@/api/client';
@@ -14,30 +14,67 @@ interface MeasurementModalProps {
   open: boolean;
   setId: number | null;
   defaultOdometer?: number;
+  /** Existing measurement to edit; null for a new one. */
+  measurement?: TireMeasurement | null;
   onClose: () => void;
   onSaved: () => void;
 }
 
-const emptyTread: Record<Wheel, string> = { fl: '', fr: '', rl: '', rr: '' };
-const emptyPressure: Record<Wheel, string> = { fl: '', fr: '', rl: '', rr: '' };
+const empty: Record<Wheel, string> = { fl: '', fr: '', rl: '', rr: '' };
+
+function s(v: number | null | undefined): string {
+  return v === null || v === undefined ? '' : String(v);
+}
 
 export function MeasurementModal({
   open,
   setId,
   defaultOdometer,
+  measurement,
   onClose,
   onSaved,
 }: MeasurementModalProps) {
   const { t } = useTranslation();
-  const pushToast = useUiStore((s) => s.pushToast);
+  const pushToast = useUiStore((s2) => s2.pushToast);
+  const editing = !!measurement?.id;
 
   const [measuredAt, setMeasuredAt] = useState(todayIso());
   const [odometer, setOdometer] = useState(String(defaultOdometer ?? ''));
-  const [tread, setTread] = useState<Record<Wheel, string>>({ ...emptyTread });
-  const [pBefore, setPBefore] = useState<Record<Wheel, string>>({ ...emptyPressure });
-  const [pAfter, setPAfter] = useState<Record<Wheel, string>>({ ...emptyPressure });
+  const [tread, setTread] = useState<Record<Wheel, string>>({ ...empty });
+  const [pBefore, setPBefore] = useState<Record<Wheel, string>>({ ...empty });
+  const [pAfter, setPAfter] = useState<Record<Wheel, string>>({ ...empty });
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  // Sync form when the modal opens (new defaults vs. edit prefill).
+  useEffect(() => {
+    if (!open) return;
+    const m = measurement;
+    if (m) {
+      setMeasuredAt(m.measured_at);
+      setOdometer(String(m.odometer_km));
+      setTread({ fl: s(m.tread_fl_mm), fr: s(m.tread_fr_mm), rl: s(m.tread_rl_mm), rr: s(m.tread_rr_mm) });
+      setPBefore({
+        fl: s(m.pressure_fl_before_bar),
+        fr: s(m.pressure_fr_before_bar),
+        rl: s(m.pressure_rl_before_bar),
+        rr: s(m.pressure_rr_before_bar),
+      });
+      setPAfter({
+        fl: s(m.pressure_fl_after_bar),
+        fr: s(m.pressure_fr_after_bar),
+        rl: s(m.pressure_rl_after_bar),
+        rr: s(m.pressure_rr_after_bar),
+      });
+    } else {
+      setMeasuredAt(todayIso());
+      setOdometer(String(defaultOdometer ?? ''));
+      setTread({ ...empty });
+      setPBefore({ ...empty });
+      setPAfter({ ...empty });
+    }
+    setErr(null);
+  }, [open, measurement, defaultOdometer]);
 
   const num = (v: string): number | null => (v === '' ? null : Number(v));
 
@@ -63,8 +100,13 @@ export function MeasurementModal({
       pressure_rr_after_bar: num(pAfter.rr),
     };
     try {
-      await tiresApi.addMeasurement(setId, body);
-      pushToast(t('common.created'), 'success');
+      if (editing && measurement?.id) {
+        await tiresApi.updateMeasurement(measurement.id, body);
+        pushToast(t('common.saved'), 'success');
+      } else {
+        await tiresApi.addMeasurement(setId, body);
+        pushToast(t('common.created'), 'success');
+      }
       onSaved();
     } catch (e2) {
       setErr(apiErrorMessage(e2));
@@ -76,6 +118,10 @@ export function MeasurementModal({
   return (
     <Modal open={open} onClose={onClose} title={t('tires.measurementModalTitle')} maxWidth={560}>
       <form onSubmit={submit} className="flex flex-col gap-4">
+        <div className="rounded-lg border border-state-green/30 bg-state-green-bg px-3.5 py-2.5 text-[13px] text-state-green">
+          {t('tires.measurementInfo')}
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <FormField label={t('tires.measuredAt')} required>
             <Input type="date" value={measuredAt} onChange={(e) => setMeasuredAt(e.target.value)} required />
@@ -94,7 +140,7 @@ export function MeasurementModal({
                   type="number"
                   step="0.1"
                   value={tread[w]}
-                  onChange={(e) => setTread((s) => ({ ...s, [w]: e.target.value }))}
+                  onChange={(e) => setTread((st) => ({ ...st, [w]: e.target.value }))}
                   required
                 />
               </FormField>
@@ -121,7 +167,7 @@ export function MeasurementModal({
                       type="number"
                       step="0.1"
                       value={pBefore[w]}
-                      onChange={(e) => setPBefore((s) => ({ ...s, [w]: e.target.value }))}
+                      onChange={(e) => setPBefore((st) => ({ ...st, [w]: e.target.value }))}
                     />
                   </td>
                   <td className="px-1 py-1">
@@ -129,7 +175,7 @@ export function MeasurementModal({
                       type="number"
                       step="0.1"
                       value={pAfter[w]}
-                      onChange={(e) => setPAfter((s) => ({ ...s, [w]: e.target.value }))}
+                      onChange={(e) => setPAfter((st) => ({ ...st, [w]: e.target.value }))}
                     />
                   </td>
                 </tr>

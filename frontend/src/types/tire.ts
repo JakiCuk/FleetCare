@@ -42,7 +42,9 @@ export interface CreateTireSetRequest {
   initial_measurement?: TireMeasurement;
 }
 
-export type UpdateTireSetRequest = Partial<Omit<CreateTireSetRequest, 'initial_measurement'>>;
+export type UpdateTireSetRequest = Partial<Omit<CreateTireSetRequest, 'initial_measurement'>> & {
+  is_active?: boolean;
+};
 
 export interface TireTrendPoint {
   km: number;
@@ -55,4 +57,6 @@ export interface TireTrend {
   projection: { km: number; projected: number }[];
   reference_mm: number;
   projection_date: string | null;
+  /** km at which the 1.6 mm reference is reached (present even without a date). */
+  km_at_reference: number | null;
 }

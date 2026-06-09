@@ -4,18 +4,21 @@ import { useTranslation } from 'react-i18next';
 import { carsApi } from '@/api/cars';
 import { useApi } from '@/hooks/useApi';
 import {
+  Badge,
   Btn,
   Card,
   Column,
   ErrorState,
   Input,
   LoadingState,
+  OverdueBadge,
   PageHeader,
+  StatusChip,
   Table,
 } from '@/components/common';
 import { AddCarModal } from './dashboard/AddCarModal';
 import { formatKm } from '@/lib/format';
-import type { Car } from '@/types';
+import type { CarListItem } from '@/types';
 
 export default function CarsListPage() {
   const { t } = useTranslation();
@@ -37,12 +40,40 @@ export default function CarsListPage() {
     );
   }, [data, query]);
 
-  const columns: Column<Car>[] = [
+  const columns: Column<CarListItem>[] = [
     { key: 'car', header: t('cars.colCar'), render: (c) => <span className="font-medium">{c.full_name}</span> },
     { key: 'plate', header: t('cars.colPlate'), render: (c) => <span className="font-mono text-xs">{c.license_plate}</span> },
-    { key: 'vin', header: t('cars.colVin'), render: (c) => <span className="font-mono text-xs text-text-muted">{c.vin}</span> },
+    {
+      key: 'vin',
+      header: t('cars.colVin'),
+      render: (c) => (
+        <span className="font-mono text-xs text-text-muted">{c.vin ? `${c.vin.slice(0, 8)}…` : '—'}</span>
+      ),
+    },
     { key: 'year', header: t('cars.colYear'), render: (c) => c.year },
     { key: 'odometer', header: t('cars.colOdometer'), align: 'right', render: (c) => formatKm(c.current_odometer_km) },
+    {
+      key: 'stk',
+      header: t('cars.colStk'),
+      render: (c) =>
+        c.stk ? <StatusChip label="STK" days={c.stk.days_left} urgentThreshold={14} /> : <span className="text-text-faint">–</span>,
+    },
+    {
+      key: 'insurance',
+      header: t('cars.colInsurance'),
+      render: (c) => (
+        <span className="flex flex-wrap gap-1">
+          {c.pzp && <StatusChip label="PZP" days={c.pzp.days_left} urgentThreshold={14} />}
+          {c.kasko && <StatusChip label="KASKO" days={c.kasko.days_left} urgentThreshold={14} />}
+          {!c.pzp && !c.kasko && <span className="text-text-faint">–</span>}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: t('cars.colStatus'),
+      render: (c) => (c.overdue ? <OverdueBadge /> : <Badge variant="green">{t('cars.statusOk')}</Badge>),
+    },
     {
       key: 'detail',
       header: t('cars.colDetail'),

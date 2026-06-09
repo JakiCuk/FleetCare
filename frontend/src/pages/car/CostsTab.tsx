@@ -14,9 +14,12 @@ import {
   Input,
   LoadingState,
   Modal,
+  PeriodSelector,
   Select,
   Table,
+  defaultPeriod,
 } from '@/components/common';
+import type { PeriodValue } from '@/components/common';
 import { CostPieChart } from '@/components/charts';
 import { expenseCategoryHex } from '@/lib/colors';
 import { formatDate, formatMoney, todayIso } from '@/lib/format';
@@ -33,8 +36,13 @@ const categoryVariant: Record<ExpenseCategory, ChipVariant> = {
 export function CostsTab({ carId }: { carId: number }) {
   const { t } = useTranslation();
   const pushToast = useUiStore((s) => s.pushToast);
-  const list = useApi(() => expensesApi.list(carId), [carId]);
-  const breakdown = useApi(() => expensesApi.breakdown(carId), [carId]);
+  const [period, setPeriod] = useState<PeriodValue>(() => defaultPeriod());
+  const range = { from_date: period.from_date, to_date: period.to_date };
+  const list = useApi(() => expensesApi.list(carId, range), [carId, period.from_date, period.to_date]);
+  const breakdown = useApi(
+    () => expensesApi.breakdown(carId, range),
+    [carId, period.from_date, period.to_date],
+  );
   const [modalOpen, setModalOpen] = useState(false);
 
   function categoryLabel(c: ExpenseCategory): string {
@@ -75,7 +83,11 @@ export function CostsTab({ carId }: { carId: number }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[260px_1fr]">
+    <div>
+      <div className="mb-4">
+        <PeriodSelector value={period} onChange={setPeriod} />
+      </div>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[260px_1fr]">
       <Card title={t('costs.title')}>
         {breakdown.loading && <LoadingState />}
         {breakdown.error && <ErrorState message={breakdown.error} onRetry={breakdown.reload} />}
@@ -132,6 +144,7 @@ export function CostsTab({ carId }: { carId: number }) {
           breakdown.reload();
         }}
       />
+      </div>
     </div>
   );
 }

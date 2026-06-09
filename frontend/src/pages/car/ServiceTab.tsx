@@ -18,6 +18,7 @@ import { formatDate, formatKm, formatMoney } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import type { ChipVariant, ServiceCategory, ServiceInterval, ServiceRecord } from '@/types';
 import { ServiceRecordModal } from './service/ServiceRecordModal';
+import { ServiceIntervalModal } from './service/ServiceIntervalModal';
 
 const categoryVariant: Record<ServiceCategory, ChipVariant> = {
   service: 'blue',
@@ -32,6 +33,9 @@ export function ServiceTab({ carId, currentOdometer }: { carId: number; currentO
   const records = useApi(() => servicesApi.list(carId), [carId]);
   const intervals = useApi(() => servicesApi.listIntervals(carId), [carId]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editRecord, setEditRecord] = useState<ServiceRecord | null>(null);
+  const [intervalOpen, setIntervalOpen] = useState(false);
+  const [editInterval, setEditInterval] = useState<ServiceInterval | null>(null);
 
   function categoryLabel(c: ServiceCategory): string {
     return t(`service.cat${c.charAt(0).toUpperCase()}${c.slice(1)}`);
@@ -43,6 +47,17 @@ export function ServiceTab({ carId, currentOdometer }: { carId: number; currentO
       await servicesApi.remove(rec.id);
       pushToast(t('common.deleted'), 'success');
       records.reload();
+    } catch (err) {
+      pushToast(apiErrorMessage(err), 'error');
+    }
+  }
+
+  async function removeInterval(iv: ServiceInterval) {
+    if (!window.confirm(t('common.confirmDelete'))) return;
+    try {
+      await servicesApi.removeInterval(iv.id);
+      pushToast(t('common.deleted'), 'success');
+      intervals.reload();
     } catch (err) {
       pushToast(apiErrorMessage(err), 'error');
     }
@@ -63,9 +78,21 @@ export function ServiceTab({ carId, currentOdometer }: { carId: number; currentO
       header: t('common.actions'),
       align: 'right',
       render: (r) => (
-        <Btn variant="danger" size="sm" onClick={() => remove(r)}>
-          {t('common.delete')}
-        </Btn>
+        <span className="flex justify-end gap-2">
+          <Btn
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setEditRecord(r);
+              setModalOpen(true);
+            }}
+          >
+            {t('common.edit')}
+          </Btn>
+          <Btn variant="danger" size="sm" onClick={() => remove(r)}>
+            {t('common.delete')}
+          </Btn>
+        </span>
       ),
     },
   ];
@@ -75,7 +102,14 @@ export function ServiceTab({ carId, currentOdometer }: { carId: number; currentO
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-text">{t('service.recordsTitle')}</h3>
-          <Btn onClick={() => setModalOpen(true)}>{t('service.addRecord')}</Btn>
+          <Btn
+            onClick={() => {
+              setEditRecord(null);
+              setModalOpen(true);
+            }}
+          >
+            {t('service.addRecord')}
+          </Btn>
         </div>
         {records.loading && <LoadingState />}
         {records.error && <ErrorState message={records.error} onRetry={records.reload} />}
@@ -92,7 +126,19 @@ export function ServiceTab({ carId, currentOdometer }: { carId: number; currentO
       </div>
 
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-text">{t('service.intervalsTitle')}</h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-text">{t('service.intervalsTitle')}</h3>
+          <Btn
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setEditInterval(null);
+              setIntervalOpen(true);
+            }}
+          >
+            {t('service.addInterval')}
+          </Btn>
+        </div>
         {intervals.loading && <LoadingState />}
         {intervals.error && <ErrorState message={intervals.error} onRetry={intervals.reload} />}
         {intervals.data && (
@@ -102,7 +148,17 @@ export function ServiceTab({ carId, currentOdometer }: { carId: number; currentO
                 <p className="text-center text-sm text-text-faint">{t('service.emptyIntervals')}</p>
               </Card>
             ) : (
-              intervals.data.map((iv) => <IntervalCard key={iv.id} interval={iv} />)
+              intervals.data.map((iv) => (
+                <IntervalCard
+                  key={iv.id}
+                  interval={iv}
+                  onEdit={() => {
+                    setEditInterval(iv);
+                    setIntervalOpen(true);
+                  }}
+                  onDelete={() => removeInterval(iv)}
+                />
+              ))
             )}
           </div>
         )}
@@ -112,10 +168,30 @@ export function ServiceTab({ carId, currentOdometer }: { carId: number; currentO
         open={modalOpen}
         carId={carId}
         defaultOdometer={currentOdometer}
-        onClose={() => setModalOpen(false)}
+        record={editRecord}
+        onClose={() => {
+          setModalOpen(false);
+          setEditRecord(null);
+        }}
         onSaved={() => {
           setModalOpen(false);
+          setEditRecord(null);
           records.reload();
+          intervals.reload();
+        }}
+      />
+
+      <ServiceIntervalModal
+        open={intervalOpen}
+        carId={carId}
+        interval={editInterval}
+        onClose={() => {
+          setIntervalOpen(false);
+          setEditInterval(null);
+        }}
+        onSaved={() => {
+          setIntervalOpen(false);
+          setEditInterval(null);
           intervals.reload();
         }}
       />
@@ -123,7 +199,15 @@ export function ServiceTab({ carId, currentOdometer }: { carId: number; currentO
   );
 }
 
-function IntervalCard({ interval }: { interval: ServiceInterval }) {
+function IntervalCard({
+  interval,
+  onEdit,
+  onDelete,
+}: {
+  interval: ServiceInterval;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const { t } = useTranslation();
   const color = intervalColor(interval.km_left, interval.days_left);
 
@@ -157,6 +241,14 @@ function IntervalCard({ interval }: { interval: ServiceInterval }) {
       <div className="mt-1 text-[11px] text-text-faint">
         {interval.next_due_km !== null && `${formatKm(interval.next_due_km)}`}
         {interval.next_due_date && ` · ${formatDate(interval.next_due_date)}`}
+      </div>
+      <div className="mt-2 flex justify-end gap-2">
+        <Btn variant="secondary" size="sm" onClick={onEdit}>
+          {t('common.edit')}
+        </Btn>
+        <Btn variant="danger" size="sm" onClick={onDelete}>
+          {t('common.delete')}
+        </Btn>
       </div>
     </Card>
   );

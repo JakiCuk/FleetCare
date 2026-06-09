@@ -18,5 +18,7 @@ export type { TabItem } from './Tabs';
 export { Table } from './Table';
 export type { Column } from './Table';
 export { EmptyState } from './EmptyState';
+export { PeriodSelector, defaultPeriod } from './PeriodSelector';
+export type { PeriodValue, PeriodPreset } from './PeriodSelector';
 export { Spinner, LoadingState, ErrorState } from './States';
 export { Toaster } from './Toaster';

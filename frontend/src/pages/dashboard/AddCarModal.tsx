@@ -17,7 +17,6 @@ export function AddCarModal({ open, onClose, onCreated }: AddCarModalProps) {
   const pushToast = useUiStore((s) => s.pushToast);
 
   const [form, setForm] = useState({
-    name: '',
     make: '',
     model: '',
     year: new Date().getFullYear(),
@@ -51,15 +50,12 @@ export function AddCarModal({ open, onClose, onCreated }: AddCarModalProps) {
   return (
     <Modal open={open} onClose={onClose} title={t('addCar.title')} maxWidth={520}>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <FormField label={t('addCar.name')} required>
-          <Input value={form.name} onChange={(e) => set('name', e.target.value)} required />
-        </FormField>
         <div className="grid grid-cols-2 gap-3">
-          <FormField label={t('addCar.make')}>
-            <Input value={form.make} onChange={(e) => set('make', e.target.value)} />
+          <FormField label={t('addCar.make')} required>
+            <Input value={form.make} onChange={(e) => set('make', e.target.value)} required />
           </FormField>
-          <FormField label={t('addCar.model')}>
-            <Input value={form.model} onChange={(e) => set('model', e.target.value)} />
+          <FormField label={t('addCar.model')} required>
+            <Input value={form.model} onChange={(e) => set('model', e.target.value)} required />
           </FormField>
         </div>
         <div className="grid grid-cols-2 gap-3">
