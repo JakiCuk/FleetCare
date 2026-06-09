@@ -41,6 +41,20 @@ export interface ActiveTireSetSummary {
   projection_date: string | null;
 }
 
+/** Compact document validity summary embedded in the enriched cars list. */
+export interface CarDocStatus {
+  valid_until: string;
+  days_left: number;
+}
+
+/** GET /api/cars list item: base Car + STK/insurance summaries + overdue flag. */
+export interface CarListItem extends Car {
+  stk: CarDocStatus | null;
+  pzp: CarDocStatus | null;
+  kasko: CarDocStatus | null;
+  overdue: boolean;
+}
+
 export interface CarDetail extends Car {
   stk: DocumentSummary | null;
   pzp: DocumentSummary | null;
@@ -53,7 +67,8 @@ export interface CarDetail extends Car {
 }
 
 export interface CreateCarRequest {
-  name: string;
+  /** Optional — the server derives "make model" when omitted. */
+  name?: string;
   make: string;
   model: string;
   year: number;

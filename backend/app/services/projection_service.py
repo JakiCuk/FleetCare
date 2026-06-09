@@ -113,6 +113,40 @@ def avg_km_per_day(
     return delta_km / span_days
 
 
+def _daily_km_from_measurements(
+    measurements: list[TireMeasurement],
+    *,
+    mounted_at: date | None = None,
+    mounted_odometer_km: int | None = None,
+) -> float | None:
+    """Estimate daily km from the set's own measurements (odometer/day span).
+
+    Fallback when fleet odometer readings are insufficient. Uses the span
+    between the earliest and latest measurement (km / days); if that is not
+    enough, falls back to ``mounted_at`` → latest measurement.
+    """
+    dated = [
+        (m.measured_at, m.odometer_km)
+        for m in measurements
+        if m.measured_at is not None and m.odometer_km is not None
+    ]
+    dated.sort(key=lambda p: (p[0], p[1]))
+    if len(dated) >= 2:
+        (first_day, first_km), (last_day, last_km) = dated[0], dated[-1]
+        span_days = (last_day - first_day).days
+        delta_km = last_km - first_km
+        if span_days > 0 and delta_km > 0:
+            return delta_km / span_days
+    # mounted_at → latest measurement fallback.
+    if dated and mounted_at is not None and mounted_odometer_km is not None:
+        last_day, last_km = dated[-1]
+        span_days = (last_day - mounted_at).days
+        delta_km = last_km - mounted_odometer_km
+        if span_days > 0 and delta_km > 0:
+            return delta_km / span_days
+    return None
+
+
 def compute_projection(
     measurements: list[TireMeasurement],
     odometer_readings: list[OdometerReading],
@@ -120,6 +154,8 @@ def compute_projection(
     current_odometer_km: int | None = None,
     today: date | None = None,
     reference_mm: float = REFERENCE_TREAD_MM,
+    mounted_at: date | None = None,
+    mounted_odometer_km: int | None = None,
 ) -> ProjectionResult:
     """Compute the tread projection for a tire set.
 
@@ -184,8 +220,16 @@ def compute_projection(
         ProjectionPointData(km=float(km_at_ref), projected=reference_mm),
     ]
 
-    # Convert km-at-reference to a calendar date via avg daily km.
+    # Convert km-at-reference to a calendar date via avg daily km. When the
+    # fleet odometer log is too sparse, fall back to estimating the daily km
+    # from the set's own measurements (or mounted_at → latest measurement).
     daily = avg_km_per_day(odometer_readings, today=today)
+    if not daily or daily <= 0:
+        daily = _daily_km_from_measurements(
+            measurements,
+            mounted_at=mounted_at,
+            mounted_odometer_km=mounted_odometer_km,
+        )
     ref_odo = current_odometer_km
     if ref_odo is None and odometer_readings:
         ref_odo = max(r.reading_km for r in odometer_readings)

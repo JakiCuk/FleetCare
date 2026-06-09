@@ -20,6 +20,8 @@ export interface ServiceRecord {
   create_reminder?: boolean | null;
   next_service_date?: string | null;
   next_service_km?: number | null;
+  next_service_by_indicator?: boolean | null;
+  next_additional_desc?: string | null;
   next_additional_date?: string | null;
   next_additional_km?: number | null;
 }
@@ -43,6 +45,8 @@ export interface CreateServiceRecordRequest {
   create_reminder?: boolean | null;
   next_service_date?: string | null;
   next_service_km?: number | null;
+  next_service_by_indicator?: boolean | null;
+  next_additional_desc?: string | null;
   next_additional_date?: string | null;
   next_additional_km?: number | null;
 }

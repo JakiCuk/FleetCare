@@ -14,18 +14,26 @@ import {
   Input,
   LoadingState,
   Modal,
+  PeriodSelector,
   StatCard,
   Table,
+  defaultPeriod,
 } from '@/components/common';
+import type { PeriodValue } from '@/components/common';
 import { FuelBarChart } from '@/components/charts';
-import { formatDate, formatKm, formatMoney, formatNumber, todayIso } from '@/lib/format';
+import { formatDate, formatKm, formatMoney, formatNumber, formatPrice, todayIso } from '@/lib/format';
 import type { FuelRecord } from '@/types';
 
 export function FuelTab({ carId, currentOdometer }: { carId: number; currentOdometer: number }) {
   const { t } = useTranslation();
   const pushToast = useUiStore((s) => s.pushToast);
-  const records = useApi(() => fuelApi.list(carId), [carId]);
-  const stats = useApi(() => fuelApi.stats(carId), [carId]);
+  const [period, setPeriod] = useState<PeriodValue>(() => defaultPeriod());
+  const range = { from_date: period.from_date, to_date: period.to_date };
+  const records = useApi(() => fuelApi.list(carId, range), [carId, period.from_date, period.to_date]);
+  const stats = useApi(
+    () => fuelApi.stats(carId, { ...range, group_by: period.group_by }),
+    [carId, period.from_date, period.to_date, period.group_by],
+  );
   const [modalOpen, setModalOpen] = useState(false);
 
   async function remove(rec: FuelRecord) {
@@ -43,8 +51,8 @@ export function FuelTab({ carId, currentOdometer }: { carId: number; currentOdom
   const columns: Column<FuelRecord>[] = [
     { key: 'date', header: t('fuel.colDate'), render: (r) => formatDate(r.refueled_at) },
     { key: 'odo', header: t('fuel.colOdometer'), align: 'right', render: (r) => formatKm(r.odometer_km) },
-    { key: 'liters', header: t('fuel.colLiters'), align: 'right', render: (r) => formatNumber(r.liters, 2) },
-    { key: 'price', header: t('fuel.colPrice'), align: 'right', render: (r) => formatMoney(r.price_per_liter) },
+    { key: 'liters', header: t('fuel.colLiters'), align: 'right', render: (r) => formatNumber(r.liters, 1) },
+    { key: 'price', header: t('fuel.colPrice'), align: 'right', render: (r) => formatPrice(r.price_per_liter) },
     { key: 'total', header: t('fuel.colTotal'), align: 'right', render: (r) => formatMoney(r.total_cost) },
     { key: 'full', header: t('fuel.colFull'), align: 'center', render: (r) => (r.full_tank ? '✓' : '—') },
     {
@@ -67,24 +75,23 @@ export function FuelTab({ carId, currentOdometer }: { carId: number; currentOdom
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatCard
-            label={t('fuel.statAvg')}
-            value={stats.data ? `${formatNumber(stats.data.avg_consumption)} l/100km` : '—'}
-            color="blue"
-          />
-          <StatCard
-            label={t('fuel.statTotal')}
-            value={stats.data ? formatMoney(stats.data.total_spent) : '—'}
-            color="green"
-          />
-          <StatCard label={t('fuel.statCount')} value={stats.data?.count ?? '—'} color="gray" />
-        </div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <PeriodSelector value={period} onChange={setPeriod} />
+        <Btn onClick={() => setModalOpen(true)}>+ {t('fuel.addRecord')}</Btn>
       </div>
 
-      <div className="mb-4 flex justify-end">
-        <Btn onClick={() => setModalOpen(true)}>+ {t('fuel.addRecord')}</Btn>
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label={t('fuel.statAvg')}
+          value={stats.data ? `${formatNumber(stats.data.avg_consumption)} l/100km` : '—'}
+          color="blue"
+        />
+        <StatCard
+          label={t('fuel.statTotal')}
+          value={stats.data ? formatMoney(stats.data.total_spent) : '—'}
+          color="green"
+        />
+        <StatCard label={t('fuel.statCount')} value={stats.data?.count ?? '—'} color="gray" />
       </div>
 
       <Card title={t('fuel.chartTitle')} className="mb-5">

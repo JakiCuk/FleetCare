@@ -29,6 +29,13 @@ class ServiceRecordBase(BaseModel):
     tire_action: str | None = Field(default=None, max_length=32)
     season: str | None = Field(default=None, max_length=16)
     create_reminder: bool | None = None
+    # --- next service terms (service book "Vaše ďalšie termíny servisu") ---
+    next_service_date: date | None = None
+    next_service_km: int | None = Field(default=None, ge=0)
+    next_service_by_indicator: bool | None = None
+    next_additional_desc: str | None = Field(default=None, max_length=255)
+    next_additional_date: date | None = None
+    next_additional_km: int | None = Field(default=None, ge=0)
 
 
 class ServiceRecordCreate(ServiceRecordBase):
@@ -52,9 +59,18 @@ class ServiceRecordUpdate(BaseModel):
     tire_action: str | None = Field(default=None, max_length=32)
     season: str | None = Field(default=None, max_length=16)
     create_reminder: bool | None = None
+    # --- next service terms (service book "Vaše ďalšie termíny servisu") ---
+    next_service_date: date | None = None
+    next_service_km: int | None = Field(default=None, ge=0)
+    next_service_by_indicator: bool | None = None
+    next_additional_desc: str | None = Field(default=None, max_length=255)
+    next_additional_date: date | None = None
+    next_additional_km: int | None = Field(default=None, ge=0)
 
 
 class ServiceRecordOut(BaseModel):
+    # ``cost`` is serialized as a JSON number (float), not Decimal-as-string,
+    # so the FE can compute on it without NaN.
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -62,7 +78,7 @@ class ServiceRecordOut(BaseModel):
     odometer_km: int | None = None
     category: str
     description: str | None = None
-    cost: Decimal | None = None
+    cost: float | None = None
     shop: str | None = None
     warranty_until: date | None = None
     performed_items: list[str] | None = None
@@ -74,6 +90,13 @@ class ServiceRecordOut(BaseModel):
     tire_action: str | None = None
     season: str | None = None
     create_reminder: bool | None = None
+    # --- next service terms (service book "Vaše ďalšie termíny servisu") ---
+    next_service_date: date | None = None
+    next_service_km: int | None = None
+    next_service_by_indicator: bool | None = None
+    next_additional_desc: str | None = None
+    next_additional_date: date | None = None
+    next_additional_km: int | None = None
 
 
 # ── Service intervals ───────────────────────────────────────────────────

@@ -73,7 +73,14 @@ Reprodukuj presne (názvy a vzhľad):
   - **CarCard**: biela karta (červený 2px rám pri overdue + OVERDUE badge vpravo hore),
     názov + km, ŠPZ, riadok chipov (STK/PZP/KASKO/krajiny vinetiek), 2 info stĺpce
     (Nasledujúci servis / Pneumatiky), link „Otvoriť detail →".
+  - **Modal „Pridať auto"**: ŠPZ, značka, model, rok, VIN, odometer (**bez poľa „Name"** — názov sa
+    odvodí z `make + model` na backende). Mesačné náklady v StatCarde sa po oprave agregácie nákladov
+    prepočítavajú (palivo + servis + výdavky).
 - **Autá** — vyhľadávací Input + Card s Table (Auto/ŠPZ/VIN/Rok/Odometer/STK/Poistenie/Stav/Detail).
+  Stĺpec **STK** = `StatusChip` (`days_left`, urgent `≤14`). Stĺpec **Poistenie** zobrazuje **PZP aj
+  KASKO samostatne** (dva chipy vedľa seba, každý s vlastným `days_left`; pomlčka ak nie sú). Stĺpec
+  **Stav** = zelený badge „OK" alebo červený **OVERDUE** (ak je ktorýkoľvek termín po splatnosti).
+  Dáta z enrichnutého `GET /api/cars` (`stk`/`pzp`/`kasko` s `days_left` + `overdue`).
 - **Detail auta** — breadcrumb (Dashboard / Vozidlá / názov), hlavička fullName + meta
   (ŠPZ · VIN · rok · km), Upraviť/Zmazať; **Tabs**: Prehľad, Dokumenty, Pneumatiky, Servis,
   Palivo, Náklady.
@@ -83,36 +90,60 @@ Reprodukuj presne (názvy a vzhľad):
     `pred X d` + ⚠ pri overdue). Zoradené red→yellow→green→gray.
   - **Dokumenty**: „+ Nový dokument", Table (Typ badge/Platí do/Zostatok chip/Cena/Poskytovateľ/akcie),
     modal (typ select STK/PZP/KASKO/Vinetka SK/AT/CZ, dátum, cena, poskytovateľ).
-  - **Pneumatiky**: selektor sád (pill tlačidlá, ✓ pri aktívnej) + „+ Pridať sadu"; header aktívnej
-    sady s **diagramom 4 kolies** (FL/FR/RL/RR, farba podľa mm); Card s **trend grafom** (skutočné
-    + prerušovaná projekcia + červená čiara 1.6 mm + popis „Projekcia: 1.6 mm @ dátum") + stĺpec
-    4 stat kariet (Priemerný dezén/Najazdené/Predikcia/Tlak); tabuľka histórie meraní
-    (Dátum/Odometer/FL/FR/RL/RR/Priemer/Tlak). Modály: **Nové meranie** (4 dezény + tabuľka tlaku
-    4 kolesá × pred/po hustení) a **Pridať sadu** (názov, sezóna, nasadenie, plánovaná výmena,
-    počiatočný dezén + tlak).
+  - **Pneumatiky**: selektor sád (pill tlačidlá, ✓ pri aktívnej) + „+ Pridať sadu"; header sady má
+    badge **„Aktívna sada"/„Neaktívna sada"** (bez výrazného rámika) + **diagram 4 kolies**
+    (FL/FR/RL/RR, farba podľa mm) vpravo; akcie sady: **„Nastaviť ako aktívnu"** (PATCH
+    `is_active=true`), **Upraviť** (názov/sezóna/dátumy), **Archivovať** (`is_active=false`, vlastník),
+    **Zmazať** (len admin). Card s **trend grafom** (skutočné + prerušovaná projekcia + červená čiara
+    1.6 mm + popis „Projekcia: 1.6 mm @ dátum") + stĺpec 4 stat kariet (Priemerný dezén/Najazdené/
+    Predikcia/Tlak). **Predikcia (text):** ak je `projection_date` → dátum; inak ak je
+    `km_at_reference` → „≈ pri X km"; inak „málo dát". Graf kreslí projekciu len keď existuje
+    `projection`. Číselné polia (dezén/tlak) prichádzajú ako **number** (nie string) → žiadne NaN;
+    priemer počítaný s null-guardom. Tabuľka histórie meraní (Dátum/Odometer/FL/FR/RL/RR/Priemer/Tlak)
+    s akciami **Upraviť/Zmazať** na riadku; tlačidlo **„+ Nové meranie"** (modré) je v hlavičke karty
+    „História meraní". Modály: **Nové meranie** (4 dezény + tabuľka tlaku 4 kolesá × pred/po hustení,
+    zelený info-box) a **Pridať sadu** (názov, sezóna, nasadenie, plánovaná výmena, počiatočný dezén
+    + tlak).
   - **Servis**: vľavo „Záznamy servisov" Table (Dátum/Odometer/Popis/Kategória badge/Cena/Upraviť),
-    vpravo (300px) „Servisné intervaly" karty s progress barom a „za X km" badge. Modal „Nový záznam":
-    Dátum + km, **kategória chips** (Servis 🔵/Oprava 🟠/Pneumatiky 🟢/Iné ⚪), popis, cena.
-    - Pri **Servis** → rozšírený panel (720px) „Potvrdenie servisných úkonov": 2 stĺpce checkboxov
-      **Vykonané** + **Dodatočné práce – výmena** (+ „+ Pridať ďalší úkon" s ✕), olej (názov +
-      ďalšia výmena km), „Vaše ďalšie termíny servisu" (Servisná prehliadka / Dodatočné práce pod
-      sebou, dátum + km), „Kontrola karosérie" (Zistený nedostatok? Áno/Nie → popis), checkbox
-      „Vytvoriť pripomienku a notifikáciu".
+    s akciou **Upraviť/Zobraziť** existujúceho záznamu (modál sa otvorí predvyplnený, `servicesApi.update`);
+    vpravo (300px) „Servisné intervaly" karty s progress barom a „za X km" badge + CRUD UI. Modal
+    „Nový záznam": Dátum + km, **kategória chips** (Servis 🔵/Oprava 🟠/Pneumatiky 🟢/Iné ⚪), popis, cena.
+    - Pri **Servis** → rozšírený panel (720px) „Potvrdenie servisných úkonov": **„Vykonané"** a
+      **„Dodatočné práce – výmena"** vedľa seba (2 stĺpce checkboxov, položky cez i18n
+      `service.performed.*`/`service.additional.*` SK+EN, prvé dva „Vykonané" zvýraznené) + „+ Pridať
+      ďalší úkon" (✕); olej (názov + ďalšia výmena km); **„Vaše ďalšie termíny servisu"** = dva
+      ohraničené boxy: *Servisná prehliadka* (checkbox „podľa ukazovateľa servisných intervalov" +
+      Dňa/Pri) a *Dodatočné práce* (Popis + Dňa/Pri) — mapované na DB polia `next_service_*` /
+      `next_additional_*`; **„Kontrola karosérie"** = prepínač **Áno/Nie tlačidlá** (nie checkboxy) →
+      textarea „Popis nedostatku"; checkbox „**Vytvoriť pripomienku a notifikáciu pred ďalším termínom
+      servisu**" → pri zadanom ďalšom termíne idempotentne upsertne `ServiceInterval` (zobrazí sa
+      v paneli intervalov + spúšťa smart notifikáciu).
     - **Oprava** → panel (servis/dielňa, záruka do, rozpis dielov). **Pneumatiky** → panel
-      (typ úkonu, sezóna). **Iné** → len základné polia.
-  - **Palivo**: 3× StatCard (Priem. spotreba/Celkové výdavky/Počet tankovaní), bar chart „Spotreba
-    l/100km", „Log tankovania" Table, modal „Pridať tankovanie".
-  - **Náklady**: vľavo (260px) Card s **koláčovým grafom** + legenda + „Spolu"; vpravo „Výdavky"
-    Table (Dátum/Popis/Kategória badge/Suma).
-- **Notifikácie** — 3× StatCard, červený **overdue alert** banner, filter (Všetky/Odoslané/Neúspešné),
-  Table (Čas/Auto/Typ/Kanál badge/Príjemca/Stav badge).
+      (typ úkonu ako **Select**, sezóna). **Iné** → len základné polia.
+  - **Palivo**: **selektor obdobia** (presety Tento mesiac / Tento rok / Vlastné + prepínač
+    mesiac/rok); 3× StatCard (Priem. spotreba/Celkové výdavky/Počet tankovaní), bar chart „Spotreba
+    l/100km", „Log tankovania" Table, modal „Pridať tankovanie". **Formátovanie:** cena/l **4
+    desatinné** (`formatPrice`), celková suma **2** (`formatMoney`), spotreba a litre **1** (`formatNumber`).
+  - **Náklady**: **selektor obdobia** (rovnaký ako Palivo, volá `from_date`/`to_date`); vľavo (260px)
+    Card s **koláčovým grafom** + legenda + „Spolu"; vpravo „Výdavky" Table (Dátum/Popis/Kategória
+    badge/Suma). Breakdown **automaticky započítava palivo** (`fuel_records.total_cost`, kategória
+    `fuel`) **a servis** (`service_records.cost`, kategória `service`) popri `expenses` — kategórie
+    používajú anglické kľúče (`fuel/service/documents/tires/other`) kvôli farbám.
+- **Notifikácie** (dostupné **každému prihlásenému používateľovi**) — 3× StatCard, červený **overdue
+  alert** banner, filter (Všetky/Odoslané/Neúspešné), Table (Čas/Auto/Typ/Kanál badge/Príjemca/Stav
+  badge). Bežný používateľ vidí **svoj** log (scoped na jeho autá) a spravuje **pravidlá pre svoje
+  autá** (znovupoužitý `RulesTab`); admin vidí všetko. SMTP/Matrix/test/run/používatelia ostávajú
+  admin-only.
 - **Admin** — PageHeader „Admin · Notifikácie" + „Test send" + „+ Nové pravidlo"; Tabs:
   **Pravidlá** (Table s lead 1/2/3, stav, kanály), **Log** (Table + Export CSV), **SMTP**
   (formulár + šablóny emailov), **Matrix** (toggle, homeserver/token/room + per-auto miestnosti),
   **Používatelia** (Table s avatarom, rola badge, pridelené autá, aktivovať/deaktivovať; modal).
-- **Nastavenia** — Karty: Všeobecné (názov flotily, časové pásmo, **jazyk SK/EN**, mena),
-  Notifikácie (lead 1/2/3, čas odosielania, min. dezén mm), PWA (inštalácia), Nebezpečná zóna
-  (Exportovať všetky dáta / Zmazať všetky dáta).
+- **Nastavenia** (**iba admin** — položka v navigácii `adminOnly`, route obalená `AdminRoute`) —
+  Karty: Všeobecné (názov flotily, časové pásmo, **jazyk SK/EN**, mena), Notifikácie (lead 1/2/3,
+  čas odosielania, min. dezén mm), PWA (inštalácia), Nebezpečná zóna (Exportovať všetky dáta /
+  Zmazať všetky dáta).
+- **Detail auta** — tlačidlo **„Zmazať" len pre admina** (`delete_car` = `CurrentAdmin`); bežný
+  používateľ auto zmazať nevie (archivácia/úprava áno).
 
 ## 6. Grafy (Recharts)
 - **História odometra** — `LineChart` (area gradient + body), os km (k formát).

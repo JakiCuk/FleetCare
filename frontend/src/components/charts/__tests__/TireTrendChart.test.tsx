@@ -36,6 +36,7 @@ const trend: TireTrend = {
   ],
   reference_mm: 1.6,
   projection_date: '2025-03-01',
+  km_at_reference: 164000,
 };
 
 describe('TireTrendChart', () => {
@@ -52,6 +53,7 @@ describe('TireTrendChart', () => {
       projection: [],
       reference_mm: 1.6,
       projection_date: null,
+      km_at_reference: null,
     };
     const { container } = render(<TireTrendChart trend={empty} />);
     expect(container).toBeTruthy();

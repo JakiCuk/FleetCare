@@ -12,12 +12,16 @@ import {
   PageHeader,
   StatCard,
   Table,
+  Tabs,
 } from '@/components/common';
+import type { TabItem } from '@/components/common';
 import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import type { ChipVariant, NotificationLogEntry, NotificationLogStatus } from '@/types';
+import { RulesTab } from './admin/RulesTab';
 
 type Filter = 'all' | 'sent' | 'failed';
+type Section = 'log' | 'rules';
 
 const statusVariant: Record<NotificationLogStatus, ChipVariant> = {
   sent: 'green',
@@ -26,7 +30,7 @@ const statusVariant: Record<NotificationLogStatus, ChipVariant> = {
   skipped: 'gray',
 };
 
-export default function NotificationsPage() {
+function LogSection() {
   const { t } = useTranslation();
   const log = useApi(() => notificationsApi.listLog({ limit: 200 }), []);
   const dashboard = useApi(() => dashboardApi.get(), []);
@@ -78,8 +82,6 @@ export default function NotificationsPage() {
 
   return (
     <div>
-      <PageHeader title={t('notifications.title')} subtitle={t('notifications.subtitle')} />
-
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label={t('notifications.statTotal')} value={counts.total} color="blue" />
         <StatCard label={t('notifications.statSent')} value={counts.sent} color="green" />
@@ -117,6 +119,24 @@ export default function NotificationsPage() {
           <Table columns={columns} rows={filtered} rowKey={(r) => r.id} emptyMsg={t('notifications.empty')} />
         </Card>
       )}
+    </div>
+  );
+}
+
+export default function NotificationsPage() {
+  const { t } = useTranslation();
+  const [section, setSection] = useState<Section>('log');
+
+  const tabs: TabItem[] = [
+    { key: 'log', label: t('notifications.tabLog') },
+    { key: 'rules', label: t('notifications.tabRules') },
+  ];
+
+  return (
+    <div>
+      <PageHeader title={t('notifications.title')} subtitle={t('notifications.subtitle')} />
+      <Tabs items={tabs} active={section} onChange={(k) => setSection(k as Section)} className="mb-5" />
+      {section === 'log' ? <LogSection /> : <RulesTab />}
     </div>
   );
 }

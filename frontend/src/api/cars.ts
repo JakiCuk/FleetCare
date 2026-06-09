@@ -2,6 +2,7 @@ import api from './client';
 import type {
   Car,
   CarDetail,
+  CarListItem,
   CreateCarRequest,
   CreateOdometerRequest,
   OdometerReading,
@@ -9,7 +10,7 @@ import type {
 } from '@/types';
 
 export const carsApi = {
-  list: () => api.get<Car[]>('/cars').then((r) => r.data),
+  list: () => api.get<CarListItem[]>('/cars').then((r) => r.data),
 
   get: (id: number) => api.get<CarDetail>(`/cars/${id}`).then((r) => r.data),
 

@@ -72,6 +72,22 @@ class ServiceRecord(Base):
         Boolean, nullable=False, server_default="false", default=False
     )
 
+    # --- next service terms (service book "Vaše ďalšie termíny servisu") ---
+    next_service_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    next_service_km: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    next_service_by_indicator: Mapped[bool | None] = mapped_column(
+        Boolean, nullable=True
+    )
+    next_additional_desc: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
+    next_additional_date: Mapped[date | None] = mapped_column(
+        Date, nullable=True
+    )
+    next_additional_km: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

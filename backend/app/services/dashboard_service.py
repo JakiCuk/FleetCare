@@ -15,9 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.car import Car
 from app.models.document import InsurancePolicy, TechnicalInspection, Vignette
 from app.models.expense import Expense
+from app.models.fuel import FuelRecord
 from app.models.notification import NotificationLog
 from app.models.odometer import OdometerReading
-from app.models.service import ServiceInterval
+from app.models.service import ServiceInterval, ServiceRecord
 from app.models.tire import TireMeasurement, TireSet
 from app.schemas.dashboard import (
     CarAggregate,
@@ -25,7 +26,7 @@ from app.schemas.dashboard import (
     DashboardStats,
     OverdueFlags,
 )
-from app.services import projection_service
+from app.services import fuel_service, projection_service
 
 
 def _days_left(valid_until: date | None, today: date) -> int | None:
@@ -240,9 +241,16 @@ def _sort_chips(chips: list[DashboardChip]) -> list[DashboardChip]:
 
 
 async def _monthly_cost(session: AsyncSession, car_id: int, today: date) -> float:
-    """Sum of expenses in the trailing 30 days for a car."""
+    """Trailing-30-day cost for a car: expenses + fuel + service.
+
+    Mirrors the costs breakdown so the dashboard "monthly cost" matches the
+    Costs tab. Fuel uses ``total_cost`` (else liters*price) and service uses
+    ``cost``; the english category keys are not duplicated as expense rows.
+    """
     since = today - timedelta(days=30)
-    rows = (
+    total = 0.0
+
+    exp_rows = (
         await session.execute(
             select(Expense.amount).where(
                 Expense.car_id == car_id,
@@ -250,7 +258,29 @@ async def _monthly_cost(session: AsyncSession, car_id: int, today: date) -> floa
             )
         )
     ).scalars().all()
-    return round(sum(float(a) for a in rows if a is not None), 2)
+    total += sum(float(a) for a in exp_rows if a is not None)
+
+    fuel_rows = (
+        await session.execute(
+            select(FuelRecord).where(
+                FuelRecord.car_id == car_id,
+                FuelRecord.refueled_at >= since,
+            )
+        )
+    ).scalars().all()
+    total += sum(fuel_service._total_cost(r) for r in fuel_rows)
+
+    svc_rows = (
+        await session.execute(
+            select(ServiceRecord.cost).where(
+                ServiceRecord.car_id == car_id,
+                ServiceRecord.performed_at >= since,
+            )
+        )
+    ).scalars().all()
+    total += sum(float(c) for c in svc_rows if c is not None)
+
+    return round(total, 2)
 
 
 def _add_months(d: date, months: int) -> date:

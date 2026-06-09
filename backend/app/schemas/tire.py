@@ -31,16 +31,15 @@ class MeasurementCreate(MeasurementBase):
     pass
 
 
-class MeasurementOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class MeasurementUpdate(BaseModel):
+    """Partial update for a measurement (all fields optional)."""
 
-    id: int
-    measured_at: date
-    odometer_km: int
-    tread_fl_mm: Decimal
-    tread_fr_mm: Decimal
-    tread_rl_mm: Decimal
-    tread_rr_mm: Decimal
+    measured_at: date | None = None
+    odometer_km: int | None = Field(default=None, ge=0)
+    tread_fl_mm: Decimal | None = None
+    tread_fr_mm: Decimal | None = None
+    tread_rl_mm: Decimal | None = None
+    tread_rr_mm: Decimal | None = None
     pressure_fl_before_bar: Decimal | None = None
     pressure_fr_before_bar: Decimal | None = None
     pressure_rl_before_bar: Decimal | None = None
@@ -49,6 +48,28 @@ class MeasurementOut(BaseModel):
     pressure_fr_after_bar: Decimal | None = None
     pressure_rl_after_bar: Decimal | None = None
     pressure_rr_after_bar: Decimal | None = None
+
+
+class MeasurementOut(BaseModel):
+    # Numeric fields the FE computes on are serialized as JSON numbers (float),
+    # not Decimal-as-string, to avoid NaN on the client.
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    measured_at: date
+    odometer_km: int
+    tread_fl_mm: float | None = None
+    tread_fr_mm: float | None = None
+    tread_rl_mm: float | None = None
+    tread_rr_mm: float | None = None
+    pressure_fl_before_bar: float | None = None
+    pressure_fr_before_bar: float | None = None
+    pressure_rl_before_bar: float | None = None
+    pressure_rr_before_bar: float | None = None
+    pressure_fl_after_bar: float | None = None
+    pressure_fr_after_bar: float | None = None
+    pressure_rl_after_bar: float | None = None
+    pressure_rr_after_bar: float | None = None
     avg_tread_mm: float | None = None
 
 
@@ -104,3 +125,6 @@ class TrendResponse(BaseModel):
     projection: list[ProjectionPoint] = Field(default_factory=list)
     reference_mm: float = 1.6
     projection_date: date | None = None
+    # Odometer reading at which the 1.6 mm reference is reached. Present even
+    # when no calendar date can be computed (FE falls back to "≈ at X km").
+    km_at_reference: float | None = None

@@ -21,3 +21,11 @@ export interface Paginated {
   limit?: number;
   offset?: number;
 }
+
+/** Optional date-range filter (yyyy-mm-dd) shared by fuel/expense endpoints. */
+export interface DateRange {
+  from_date?: string;
+  to_date?: string;
+}
+
+export type StatGroupBy = 'month' | 'year';

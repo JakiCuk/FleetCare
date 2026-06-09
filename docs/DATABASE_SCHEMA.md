@@ -135,9 +135,18 @@ Záznam servisu/opravy + detail podľa **servisnej knižky** (kategória „Serv
 | tire_action | VARCHAR(32) | (pneumatiky) prezutie/vyváženie/geometria/oprava |
 | season | VARCHAR(16) | (pneumatiky) |
 | create_reminder | BOOLEAN DEFAULT false | vytvoriť pripomienku na ďalší termín |
+| next_service_date | DATE | „Vaše ďalšie termíny servisu" – servisná prehliadka: dátum *(migrácia 0002)* |
+| next_service_km | INTEGER | servisná prehliadka: pri km *(migrácia 0002)* |
+| next_service_by_indicator | BOOLEAN | „podľa ukazovateľa servisných intervalov" *(migrácia 0002)* |
+| next_additional_desc | VARCHAR(255) | dodatočné práce: popis *(migrácia 0002)* |
+| next_additional_date | DATE | dodatočné práce: dátum *(migrácia 0002)* |
+| next_additional_km | INTEGER | dodatočné práce: pri km *(migrácia 0002)* |
 | created_at | TIMESTAMPTZ |
 
 > Voliteľné polia podľa kategórie. JSONB pre flexibilný checklist (presná štruktúra v API kontrakte).
+> Šesť `next_*` stĺpcov pribudlo v **migrácii `0002_service_next_terms`** (všetky nullable).
+> Keď `create_reminder=true` a je zadaný `next_service_*`, backend idempotentne upsertne
+> `service_intervals` riadok (názov = `description`/kategória) → zobrazí sa v paneli intervalov.
 
 ## service_intervals
 | id | BIGSERIAL PK |
