@@ -11,7 +11,7 @@
 ---
 
 ## Health
-- `GET /api/health` → `200 {"status":"ok","db":"ok","redis":"ok","version":"0.1.0"}`
+- `GET /api/health` → `200 {"status":"ok","db":"ok","redis":"ok","version":"0.2.0","build":"<yyyymmddhhmm|dev>"}`
 
 ## Auth
 - `POST /api/auth/login` — body `{ "username": str, "password": str }`

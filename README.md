@@ -6,18 +6,35 @@
 
 ---
 
-## ✅ Stav projektu: funkčná verzia (v0.1)
+## ✅ Stav projektu: funkčná verzia (v0.2)
 
 FleetCare je **plne funkčný** — celý stack beží v Dockeri (frontend, REST API, Celery
 workers, PostgreSQL, Redis). Funguje prihlásenie (JWT), evidencia áut a všetkých záznamov,
 grafy, predikcia opotrebenia pneumatík aj denné notifikácie. Projekt sa **aktívne vyvíja a
 ďalšie funkcie pribúdajú**.
 
+### 🆕 Novinky vo v0.2
+- **Pneumatiky:** úprava aj mazanie meraní, správa sád (nastaviť aktívnu / archivovať / zmazať),
+  oprava priemerného dezénu a tlaku (číselné polia v API), projekcia ukáže dátum alebo
+  „≈ pri X km" (namiesto nekonzistentného „bez predikcie").
+- **Servis:** modálne okná **1:1 so servisnou knižkou** (vykonané úkony + dodatočné práce,
+  kontrola karosérie, ďalšie termíny), úprava/zobrazenie záznamov; „Vytvoriť pripomienku"
+  automaticky **založí/aktualizuje servisný interval** a spustí smart notifikáciu.
+- **Náklady:** breakdown **automaticky započítava palivo aj servis** (nielen výdavky); na Palive
+  aj Nákladoch je **selektor obdobia** (tento mesiac / rok / vlastné).
+- **Palivo:** korektné formátovanie (cena/l na 4 desatinné, suma na 2, spotreba/litre na 1).
+- **Autá:** zoznam zobrazuje **PZP aj KASKO samostatne** + detailný stav; „Pridať auto" bez
+  redundantného poľa „Name".
+- **Oprávnenia:** Nastavenia sú len pre admina; Notifikácie vidí každý používateľ (svoj log +
+  pravidlá pre svoje autá); auto môže zmazať len admin.
+- **Docker/Windows:** opravený build na Windows (LF konce riadkov, `.dockerignore`), worker/beat
+  reálne spúšťajú Celery.
+
 > 🔒 **Self-hosted:** pred vystavením na internet zmeň predvolené tajomstvá (`JWT_SECRET`,
 > `POSTGRES_PASSWORD`, `ADMIN_PASSWORD`), nasaď HTTPS a uzamkni `CORS_ORIGINS`. Používaš na
 > vlastné riziko, bez záruky.
 
-> 🇬🇧 **Status: functional (v0.1).** FleetCare runs as a complete Docker stack and is usable;
+> 🇬🇧 **Status: functional (v0.2).** FleetCare runs as a complete Docker stack and is usable;
 > it is **actively developed and more features are being added**. Self-hosted — change the
 > default secrets and put it behind HTTPS before exposing it.
 
@@ -45,7 +62,8 @@ zjazdenie pneumatík.
     knižky** (vykonané úkony, dodatočné práce, ďalšie termíny), plus servisné intervaly
     (km aj čas) s progress barmi.
   - **Palivo** — log tankovaní a výpočet spotreby (l/100 km) z plných nádrží.
-  - **Náklady** — rozdelenie nákladov (koláčový graf) a výdavky.
+  - **Náklady** — rozdelenie nákladov (koláčový graf) vrátane **paliva a servisu** (nielen
+    ručných výdavkov), s výberom obdobia.
 - **Notifikácie** — automatické upozornenia cez **e-mail** a **Matrix**, s históriou
   odoslaní a deduplikáciou.
 - **Admin** — notifikačné pravidlá (lead days 30/14/7 + „smart" pre pneumatiky/servis),

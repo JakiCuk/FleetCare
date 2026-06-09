@@ -12,7 +12,7 @@ async def test_health_ok(client) -> None:
     body = resp.json()
     # DB connectivity is required for the suite to run at all.
     assert body["db"] == "ok"
-    assert body["version"] == "0.1.0"
+    assert body["version"] == "0.2.0"
     # Redis may be unavailable in CI; overall status is then "degraded".
     assert body["status"] in ("ok", "degraded")
     assert body["redis"] in ("ok", "error")

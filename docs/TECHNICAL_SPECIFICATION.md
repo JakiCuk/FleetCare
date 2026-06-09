@@ -1,6 +1,6 @@
 # FleetCare — Technické zadanie (Technical Specification)
 
-**Verzia:** 0.1 · **Stav:** funkčná (aktívne sa vyvíja) · **Dátum:** 2026-06-08
+**Verzia:** 0.2 · **Stav:** funkčná (aktívne sa vyvíja) · **Dátum:** 2026-06-09
 
 Tento dokument je záväzný kontrakt pre implementáciu. Vychádza z pôvodného zadania
 (`zadanie pre car app`) a z grafického návrhu vytvoreného v Claude Design (kompletný

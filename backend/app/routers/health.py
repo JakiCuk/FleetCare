@@ -10,7 +10,7 @@ from app.database import async_session_maker
 
 router = APIRouter(tags=["health"])
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 
 @router.get("/health")
