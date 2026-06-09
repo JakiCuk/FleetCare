@@ -7,12 +7,19 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
-from app.dependencies import CurrentUser, SessionDep, get_owned_car, user_owns_car
+from app.dependencies import (
+    CurrentAdmin,
+    CurrentUser,
+    SessionDep,
+    get_owned_car,
+    user_owns_car,
+)
 from app.models.odometer import OdometerReading
 from app.models.tire import TireMeasurement, TireSet
 from app.schemas.tire import (
     MeasurementCreate,
     MeasurementOut,
+    MeasurementUpdate,
     ProjectionPoint,
     TireSetCreate,
     TireSetOut,
@@ -64,7 +71,11 @@ async def _tire_set_out(
         )
     ).scalars().all()
     proj = projection_service.compute_projection(
-        list(measurements), list(readings), today=today
+        list(measurements),
+        list(readings),
+        today=today,
+        mounted_at=tire_set.mounted_at,
+        mounted_odometer_km=tire_set.mounted_odometer_km,
     )
     return TireSetOut(
         id=tire_set.id,
@@ -87,6 +98,28 @@ async def _load_owned_set(session, current_user, set_id: int) -> TireSet:
     if obj is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tire set not found")
     if not await user_owns_car(session, current_user, obj.car_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access to this car is forbidden",
+        )
+    return obj
+
+
+async def _load_owned_measurement(
+    session, current_user, measurement_id: int
+) -> TireMeasurement:
+    """Load a measurement, asserting ownership via measurement→set→car."""
+    obj = await session.get(TireMeasurement, measurement_id)
+    if obj is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Measurement not found"
+        )
+    tire_set = await session.get(TireSet, obj.tire_set_id)
+    if tire_set is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Measurement not found"
+        )
+    if not await user_owns_car(session, current_user, tire_set.car_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access to this car is forbidden",
@@ -174,8 +207,9 @@ async def update_tire_set(
 
 
 @router.delete("/tires/{set_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
-async def delete_tire_set(set_id: int, current_user: CurrentUser, session: SessionDep):
-    tire_set = await _load_owned_set(session, current_user, set_id)
+async def delete_tire_set(set_id: int, current_admin: CurrentAdmin, session: SessionDep):
+    # Deleting a set is admin-only; owners archive via PATCH {is_active: false}.
+    tire_set = await _load_owned_set(session, current_admin, set_id)
     await session.delete(tire_set)
     await session.commit()
 
@@ -199,6 +233,40 @@ async def add_measurement(
     return _measurement_out(measurement)
 
 
+@router.patch(
+    "/tires/measurements/{measurement_id}", response_model=MeasurementOut
+)
+async def update_measurement(
+    measurement_id: int,
+    payload: MeasurementUpdate,
+    current_user: CurrentUser,
+    session: SessionDep,
+):
+    measurement = await _load_owned_measurement(
+        session, current_user, measurement_id
+    )
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(measurement, field, value)
+    await session.commit()
+    await session.refresh(measurement)
+    return _measurement_out(measurement)
+
+
+@router.delete(
+    "/tires/measurements/{measurement_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def delete_measurement(
+    measurement_id: int, current_user: CurrentUser, session: SessionDep
+):
+    measurement = await _load_owned_measurement(
+        session, current_user, measurement_id
+    )
+    await session.delete(measurement)
+    await session.commit()
+
+
 @router.get("/tires/{set_id}/trend", response_model=TrendResponse)
 async def tire_trend(set_id: int, current_user: CurrentUser, session: SessionDep):
     tire_set = await _load_owned_set(session, current_user, set_id)
@@ -214,7 +282,11 @@ async def tire_trend(set_id: int, current_user: CurrentUser, session: SessionDep
         )
     ).scalars().all()
     proj = projection_service.compute_projection(
-        list(measurements), list(readings), today=today
+        list(measurements),
+        list(readings),
+        today=today,
+        mounted_at=tire_set.mounted_at,
+        mounted_odometer_km=tire_set.mounted_odometer_km,
     )
     return TrendResponse(
         points=[TrendPoint(km=p.km, actual=p.actual) for p in proj.points],
@@ -223,4 +295,5 @@ async def tire_trend(set_id: int, current_user: CurrentUser, session: SessionDep
         ],
         reference_mm=proj.reference_mm,
         projection_date=proj.projection_date,
+        km_at_reference=proj.km_at_reference,
     )

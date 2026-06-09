@@ -21,8 +21,20 @@ class CarBase(BaseModel):
     current_odometer_km: int = Field(default=0, ge=0)
 
 
-class CarCreate(CarBase):
-    """Payload for ``POST /api/cars``."""
+class CarCreate(BaseModel):
+    """Payload for ``POST /api/cars``.
+
+    ``name`` is optional at the API level; when omitted the router derives it
+    from ``"{make} {model}"`` (the DB column stays NOT NULL).
+    """
+
+    name: str | None = Field(default=None, min_length=1, max_length=128)
+    make: str | None = Field(default=None, max_length=64)
+    model: str | None = Field(default=None, max_length=64)
+    year: int | None = Field(default=None, ge=1900, le=2100)
+    license_plate: str = Field(min_length=1, max_length=16)
+    vin: str | None = Field(default=None, max_length=32)
+    current_odometer_km: int = Field(default=0, ge=0)
 
 
 class CarUpdate(BaseModel):
@@ -51,6 +63,28 @@ class CarOut(BaseModel):
     license_plate: str
     vin: str | None = None
     current_odometer_km: int
+
+
+class DocStatus(BaseModel):
+    """Compact validity status for a single document type in the cars list."""
+
+    valid_until: date
+    days_left: int | None = None
+
+
+class CarListItem(CarOut):
+    """Enriched car-list row: ``CarOut`` + per-document validity + overdue flag.
+
+    ``stk``/``pzp``/``kasko`` carry the current (latest ``valid_until``) record's
+    ``valid_until`` + ``days_left`` (``null`` when the car has no such document),
+    letting the fleet list show STK, PZP and KASKO separately with a detailed
+    state. ``overdue`` mirrors the dashboard "any tracked item past due" flag.
+    """
+
+    stk: DocStatus | None = None
+    pzp: DocStatus | None = None
+    kasko: DocStatus | None = None
+    overdue: bool = False
 
 
 class TireSummary(BaseModel):

@@ -30,12 +30,14 @@ class ExpenseUpdate(BaseModel):
 
 
 class ExpenseOut(BaseModel):
+    # ``amount`` is serialized as a JSON number (float), not Decimal-as-string,
+    # so the FE can compute on it without NaN.
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     occurred_at: date
     description: str | None = None
-    amount: Decimal
+    amount: float
     category: str
 
 

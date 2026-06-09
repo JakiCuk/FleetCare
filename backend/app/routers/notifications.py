@@ -86,17 +86,30 @@ async def list_rules(
     return [await _rule_out(session, r) for r in rules]
 
 
+async def _assert_owns_car(session, current_user, car_id: int) -> None:
+    """403 unless the user owns ``car_id`` (admins always pass)."""
+    if not await user_owns_car(session, current_user, car_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access to this car is forbidden",
+        )
+
+
 @router.post(
     "/notification-rules",
     response_model=NotificationRuleOut,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_rule(
-    payload: NotificationRuleCreate, _: CurrentAdmin, session: SessionDep
+    payload: NotificationRuleCreate,
+    current_user: CurrentUser,
+    session: SessionDep,
 ):
     car = await session.get(Car, payload.car_id)
     if car is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Car not found")
+    # A rule may be managed by the owner of its car (admins manage any car).
+    await _assert_owns_car(session, current_user, payload.car_id)
     rule = NotificationRule(**payload.model_dump())
     session.add(rule)
     await session.commit()
@@ -106,11 +119,15 @@ async def create_rule(
 
 @router.patch("/notification-rules/{rule_id}", response_model=NotificationRuleOut)
 async def update_rule(
-    rule_id: int, payload: NotificationRuleUpdate, _: CurrentAdmin, session: SessionDep
+    rule_id: int,
+    payload: NotificationRuleUpdate,
+    current_user: CurrentUser,
+    session: SessionDep,
 ):
     rule = await session.get(NotificationRule, rule_id)
     if rule is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rule not found")
+    await _assert_owns_car(session, current_user, rule.car_id)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(rule, field, value)
     await session.commit()
@@ -119,10 +136,13 @@ async def update_rule(
 
 
 @router.delete("/notification-rules/{rule_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
-async def delete_rule(rule_id: int, _: CurrentAdmin, session: SessionDep):
+async def delete_rule(
+    rule_id: int, current_user: CurrentUser, session: SessionDep
+):
     rule = await session.get(NotificationRule, rule_id)
     if rule is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rule not found")
+    await _assert_owns_car(session, current_user, rule.car_id)
     await session.delete(rule)
     await session.commit()
 
@@ -142,14 +162,34 @@ async def _log_out(session, row: NotificationLog) -> NotificationLogOut:
     )
 
 
+async def _accessible_car_ids(session, user) -> list[int] | None:
+    """Car ids the user may see (``None`` = all, for admins)."""
+    if user.is_admin:
+        return None
+    from app.models.car import UserCarGroup
+
+    rows = (
+        await session.execute(
+            select(UserCarGroup.car_id).where(UserCarGroup.user_id == user.id)
+        )
+    ).scalars().all()
+    return list(rows)
+
+
 @router.get("/notification-log", response_model=list[NotificationLogOut])
 async def list_log(
-    _: CurrentAdmin,
+    current_user: CurrentUser,
     session: SessionDep,
     limit: int = Query(default=100, ge=1, le=1000),
     status_filter: str | None = Query(default=None, alias="status"),
 ):
+    # Non-admins see only the log entries for cars assigned to them.
+    ids = await _accessible_car_ids(session, current_user)
     stmt = select(NotificationLog).order_by(NotificationLog.sent_at.desc())
+    if ids is not None:
+        if not ids:
+            return []
+        stmt = stmt.where(NotificationLog.car_id.in_(ids))
     if status_filter:
         stmt = stmt.where(NotificationLog.status == status_filter)
     stmt = stmt.limit(limit)

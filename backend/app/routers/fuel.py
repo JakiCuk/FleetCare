@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
+from datetime import date
+from typing import Literal
+
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select
 
 from app.dependencies import CurrentUser, SessionDep, get_owned_car, user_owns_car
@@ -45,8 +48,16 @@ async def _load_owned(session, current_user, record_id: int) -> FuelRecord:
 
 
 @router.get("/cars/{car_id}/fuel", response_model=list[FuelRecordOut])
-async def list_fuel(car_id: int, current_user: CurrentUser, session: SessionDep):
+async def list_fuel(
+    car_id: int,
+    current_user: CurrentUser,
+    session: SessionDep,
+    from_date: date | None = Query(default=None),
+    to_date: date | None = Query(default=None),
+):
     await get_owned_car(session, current_user, car_id)
+    # Consumption is computed across the full history; date filtering is applied
+    # to the returned rows only, so values stay correct near a range boundary.
     rows = (
         await session.execute(
             select(FuelRecord)
@@ -55,7 +66,13 @@ async def list_fuel(car_id: int, current_user: CurrentUser, session: SessionDep)
         )
     ).scalars().all()
     cmap = fuel_service.consumption_map(list(rows))
-    return [_out(r, cmap.get(r.id)) for r in rows]
+    filtered = [
+        r
+        for r in rows
+        if (from_date is None or r.refueled_at >= from_date)
+        and (to_date is None or r.refueled_at <= to_date)
+    ]
+    return [_out(r, cmap.get(r.id)) for r in filtered]
 
 
 @router.post(
@@ -108,12 +125,23 @@ async def delete_fuel(record_id: int, current_user: CurrentUser, session: Sessio
 
 
 @router.get("/cars/{car_id}/fuel/stats", response_model=FuelStats)
-async def fuel_stats(car_id: int, current_user: CurrentUser, session: SessionDep):
+async def fuel_stats(
+    car_id: int,
+    current_user: CurrentUser,
+    session: SessionDep,
+    from_date: date | None = Query(default=None),
+    to_date: date | None = Query(default=None),
+    group_by: Literal["month", "year"] = Query(default="month"),
+):
     await get_owned_car(session, current_user, car_id)
     rows = (
         await session.execute(select(FuelRecord).where(FuelRecord.car_id == car_id))
     ).scalars().all()
-    stats = fuel_service.compute_stats(list(rows))
+    if from_date is not None:
+        rows = [r for r in rows if r.refueled_at >= from_date]
+    if to_date is not None:
+        rows = [r for r in rows if r.refueled_at <= to_date]
+    stats = fuel_service.compute_stats(list(rows), group_by=group_by)
     return FuelStats(
         avg_consumption=stats["avg_consumption"],
         total_spent=stats["total_spent"],

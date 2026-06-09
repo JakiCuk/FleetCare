@@ -52,8 +52,13 @@ def consumption_map(records: list[FuelRecord]) -> dict[int, float]:
     return out
 
 
-def compute_stats(records: list[FuelRecord]) -> dict:
-    """Aggregate fuel statistics (avg consumption, total spent, monthly trend)."""
+def compute_stats(records: list[FuelRecord], *, group_by: str = "month") -> dict:
+    """Aggregate fuel statistics (avg consumption, total spent, trend).
+
+    ``group_by`` controls the trend bucketing: ``"month"`` (``YYYY-MM``) or
+    ``"year"`` (``YYYY``). The bucket label is returned under the ``month`` key
+    of each point for backward compatibility with the existing schema.
+    """
     cmap = consumption_map(records)
 
     consumptions = list(cmap.values())
@@ -63,19 +68,19 @@ def compute_stats(records: list[FuelRecord]) -> dict:
     total_spent = round(sum(_total_cost(r) for r in records), 2)
     count = len(records)
 
-    # Monthly average consumption keyed by the record that closes each segment.
-    by_month: dict[str, list[float]] = defaultdict(list)
+    fmt = "%Y" if group_by == "year" else "%Y-%m"
+    # Average consumption per bucket, keyed by the record that closes a segment.
+    by_bucket: dict[str, list[float]] = defaultdict(list)
     for r in records:
         if r.id in cmap:
-            month = r.refueled_at.strftime("%Y-%m")
-            by_month[month].append(cmap[r.id])
+            by_bucket[r.refueled_at.strftime(fmt)].append(cmap[r.id])
 
     monthly = [
         {
-            "month": month,
+            "month": bucket,
             "consumption": round(sum(vals) / len(vals), 2) if vals else None,
         }
-        for month, vals in sorted(by_month.items())
+        for bucket, vals in sorted(by_bucket.items())
     ]
 
     return {

@@ -65,6 +65,78 @@ async def _load_owned(session, current_user, model, item_id: int, label: str):
     return obj
 
 
+def _interval_name(row: ServiceRecord) -> str:
+    """Stable interval name derived from a service record (≤128 chars).
+
+    Keyed by category/description so repeated reminders for the same kind of
+    work upsert the same ``ServiceInterval`` rather than creating duplicates.
+    """
+    base = (row.description or "").strip()
+    if not base:
+        base = {
+            "service": "Servisná prehliadka",
+            "repair": "Oprava",
+            "tires": "Pneumatiky",
+            "other": "Servis",
+        }.get(row.category, "Servis")
+    return base[:128]
+
+
+async def _upsert_reminder_interval(session, row: ServiceRecord) -> None:
+    """Idempotently create/update a ServiceInterval for a record's next term.
+
+    Runs when ``create_reminder`` is set and at least one next term (date or km)
+    is present. The interval (km/months) is derived from the gap between the
+    record's odometer/date and the requested next term, and ``last_performed_*``
+    anchors are set so the intervals panel + smart notifications fire correctly.
+    A stable name (``_interval_name``) keeps the upsert idempotent.
+    """
+    if not row.create_reminder:
+        return
+    if row.next_service_date is None and row.next_service_km is None:
+        return
+
+    interval_km: int | None = None
+    if row.next_service_km is not None and row.odometer_km is not None:
+        gap = row.next_service_km - row.odometer_km
+        interval_km = gap if gap > 0 else None
+    interval_months: int | None = None
+    if row.next_service_date is not None and row.performed_at is not None:
+        months = (
+            (row.next_service_date.year - row.performed_at.year) * 12
+            + (row.next_service_date.month - row.performed_at.month)
+        )
+        interval_months = months if months > 0 else None
+
+    name = _interval_name(row)
+    existing = (
+        await session.execute(
+            select(ServiceInterval).where(
+                ServiceInterval.car_id == row.car_id,
+                ServiceInterval.name == name,
+            )
+        )
+    ).scalars().first()
+    if existing is None:
+        session.add(
+            ServiceInterval(
+                car_id=row.car_id,
+                name=name,
+                interval_km=interval_km,
+                interval_months=interval_months,
+                last_performed_km=row.odometer_km,
+                last_performed_at=row.performed_at,
+                is_active=True,
+            )
+        )
+    else:
+        existing.interval_km = interval_km
+        existing.interval_months = interval_months
+        existing.last_performed_km = row.odometer_km
+        existing.last_performed_at = row.performed_at
+        existing.is_active = True
+
+
 # ── Service records ──────────────────────────────────────────────────────
 @router.get("/cars/{car_id}/services", response_model=list[ServiceRecordOut])
 async def list_services(car_id: int, current_user: CurrentUser, session: SessionDep):
@@ -93,6 +165,8 @@ async def create_service(
     await get_owned_car(session, current_user, car_id)
     row = ServiceRecord(car_id=car_id, **payload.model_dump(exclude_unset=True))
     session.add(row)
+    await session.flush()
+    await _upsert_reminder_interval(session, row)
     await session.commit()
     await session.refresh(row)
     return _record_out(row)
@@ -108,6 +182,8 @@ async def update_service(
     row = await _load_owned(session, current_user, ServiceRecord, service_id, "Service record")
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(row, field, value)
+    await session.flush()
+    await _upsert_reminder_interval(session, row)
     await session.commit()
     await session.refresh(row)
     return _record_out(row)

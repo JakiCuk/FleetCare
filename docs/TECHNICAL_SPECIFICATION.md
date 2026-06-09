@@ -85,6 +85,9 @@ Vstup: merania aktívnej sady (≥ 2, pre notifikáciu ≥ 3). Pre každé meran
 2. **Extrapolácia** na `y = 1.6` → `km_at_1.6 = (1.6 − b) / a` (ak `a < 0`).
 3. **Konverzia na dátum:** priemerné denné km z `odometer_readings`
    (`avg_km_per_day`) → `date = today + (km_at_1.6 − current_odometer) / avg_km_per_day`.
+   Keď je log odometra riedky, denný nájazd sa odhadne z meraní samotnej sady
+   (rozsah km/dní, prípadne `mounted_at` → posledné meranie). Ak sa dátum stále nedá určiť,
+   `projection_date = null`, ale `km_at_reference` (km pri 1,6 mm) sa vždy vráti → FE ukáže „≈ pri X km".
 4. Trend pre graf: skutočné body + projekčné body (prerušovaná čiara) po prienik s 1,6 mm.
 5. **Notifikácia (smart):** ak `projected_date < expected_change_date` (alebo priemerný
    dezén < konfigurovateľný prah, default 2,5 mm) → upozorni.
@@ -99,6 +102,14 @@ Pre každý interval: `next_due_km = last_performed_km + interval_km`,
 `next_due_date = last_performed_at + interval_months`. „Splatné" = čo nastane skôr
 (km **alebo** čas). Naliehavosť: `km_left < 500` alebo `days_left ≤ 14` → červená;
 `< 2000 km` alebo `≤ 30 d` → žltá; inak zelená.
+
+**Servisné next-terms → interval:** servisný záznam má 6 `next_*` polí („Vaše ďalšie termíny
+servisu"). Keď `create_reminder = true` a je zadaný `next_service_date`/`next_service_km`,
+backend pri create/update **idempotentne upsertne `ServiceInterval`** pre dané auto:
+`interval_km = next_service_km − odometer_km`, `interval_months` z rozdielu mesiacov
+`performed_at → next_service_date`, `last_performed_*` = z aktuálneho záznamu. Názov intervalu
+je stabilný (`description`, inak podľa kategórie) → opakovaná pripomienka neduplikuje riadok,
+objaví sa v paneli intervalov a spúšťa smart notifikáciu (§7.3 naliehavosť).
 
 ### 7.4 Farebné kódovanie termínov (chips)
 `days < 0` alebo `≤ 7` → červená; `≤ 30` → žltá; inak zelená; `null` → sivá.

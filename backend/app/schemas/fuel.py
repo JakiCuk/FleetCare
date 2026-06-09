@@ -31,14 +31,16 @@ class FuelRecordUpdate(BaseModel):
 
 
 class FuelRecordOut(BaseModel):
+    # Numeric fields the FE computes/displays are serialized as JSON numbers
+    # (float), not Decimal-as-string, to avoid NaN on the client.
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     refueled_at: date
     odometer_km: int
-    liters: Decimal
-    price_per_liter: Decimal | None = None
-    total_cost: Decimal | None = None
+    liters: float
+    price_per_liter: float | None = None
+    total_cost: float | None = None
     full_tank: bool
     consumption_l_100km: float | None = None
 

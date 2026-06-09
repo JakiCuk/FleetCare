@@ -7,15 +7,18 @@ from datetime import date
 from fastapi import APIRouter, status
 from sqlalchemy import select
 
-from app.dependencies import CurrentUser, SessionDep, get_owned_car
+from app.dependencies import CurrentAdmin, CurrentUser, SessionDep, get_owned_car
 from app.models.car import Car, UserCarGroup
+from app.models.document import InsurancePolicy, TechnicalInspection
 from app.models.notification import NotificationRule
-from app.routers._serializers import car_full_name, serialize_car
+from app.routers._serializers import car_full_name, days_left, serialize_car
 from app.schemas.car import (
     CarCreate,
     CarDetail,
+    CarListItem,
     CarOut,
     CarUpdate,
+    DocStatus,
     NextServiceSummary,
     TireSummary,
 )
@@ -39,8 +42,46 @@ async def _accessible_car_ids(session: SessionDep, user: CurrentUser) -> list[in
     return list(rows)
 
 
-@router.get("", response_model=list[CarOut])
-async def list_cars(current_user: CurrentUser, session: SessionDep) -> list[CarOut]:
+def _doc_status(rows: list, today: date) -> DocStatus | None:
+    """Build a DocStatus from the latest (max valid_until) document, or None."""
+    if not rows:
+        return None
+    latest = max(rows, key=lambda r: r.valid_until)
+    return DocStatus(
+        valid_until=latest.valid_until,
+        days_left=days_left(latest.valid_until, today),
+    )
+
+
+async def _car_list_item(
+    session: SessionDep, car: Car, *, today: date
+) -> CarListItem:
+    """Enrich a car with per-document validity (STK/PZP/KASKO) + overdue flag."""
+    base = serialize_car(car)
+    stk_rows = (
+        await session.execute(
+            select(TechnicalInspection).where(TechnicalInspection.car_id == car.id)
+        )
+    ).scalars().all()
+    ins_rows = (
+        await session.execute(
+            select(InsurancePolicy).where(InsurancePolicy.car_id == car.id)
+        )
+    ).scalars().all()
+    agg = await dashboard_service.aggregate_car(session, car, today=today)
+    return CarListItem(
+        **base.model_dump(),
+        stk=_doc_status(list(stk_rows), today),
+        pzp=_doc_status([r for r in ins_rows if r.type == "PZP"], today),
+        kasko=_doc_status([r for r in ins_rows if r.type == "KASKO"], today),
+        overdue=agg.overdue.any,
+    )
+
+
+@router.get("", response_model=list[CarListItem])
+async def list_cars(
+    current_user: CurrentUser, session: SessionDep
+) -> list[CarListItem]:
     ids = await _accessible_car_ids(session, current_user)
     stmt = select(Car).order_by(Car.name)
     if ids is not None:
@@ -48,14 +89,21 @@ async def list_cars(current_user: CurrentUser, session: SessionDep) -> list[CarO
             return []
         stmt = stmt.where(Car.id.in_(ids))
     cars = (await session.execute(stmt)).scalars().all()
-    return [serialize_car(c) for c in cars]
+    today = date.today()
+    return [await _car_list_item(session, c, today=today) for c in cars]
 
 
 @router.post("", response_model=CarOut, status_code=status.HTTP_201_CREATED)
 async def create_car(
     payload: CarCreate, current_user: CurrentUser, session: SessionDep
 ) -> CarOut:
-    car = Car(**payload.model_dump())
+    data = payload.model_dump()
+    # ``name`` is optional at the API level; derive it from make/model when
+    # omitted (the DB column is NOT NULL).
+    if not data.get("name"):
+        derived = f"{data.get('make') or ''} {data.get('model') or ''}".strip()
+        data["name"] = derived or data["license_plate"]
+    car = Car(**data)
     session.add(car)
     await session.flush()
 
@@ -179,8 +227,9 @@ async def update_car(
 
 @router.delete("/{car_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_car(
-    car_id: int, current_user: CurrentUser, session: SessionDep
+    car_id: int, current_admin: CurrentAdmin, session: SessionDep
 ) -> None:
-    car = await get_owned_car(session, current_user, car_id)
+    # Deleting a car is admin-only (non-admins archive/unassign instead).
+    car = await get_owned_car(session, current_admin, car_id)
     await session.delete(car)
     await session.commit()
