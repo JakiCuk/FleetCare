@@ -1,0 +1,14 @@
+# Never copy host-installed deps/build output into the image build context.
+# On Windows these contain platform-specific native binaries (esbuild/rollup)
+# that crash `npm run build` when copied over the image's Linux node_modules.
+node_modules
+dist
+dev-dist
+.vite
+
+# VCS / editor / logs
+.git
+.gitignore
+*.log
+npm-debug.log*
+.DS_Store

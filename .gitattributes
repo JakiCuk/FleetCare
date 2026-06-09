@@ -1,0 +1,23 @@
+# Normalize line endings across platforms. The app runs entirely in Linux
+# containers, so text files must check out with LF even on Windows — a CRLF
+# `entrypoint.sh` breaks the shebang and crash-loops the backend image.
+* text=auto eol=lf
+
+# Scripts and configs that MUST stay LF (defensive; covered by the rule above).
+*.sh    text eol=lf
+*.bash  text eol=lf
+Dockerfile      text eol=lf
+*.conf  text eol=lf
+
+# Treat known binaries as binary (never normalized).
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary

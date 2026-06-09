@@ -1,0 +1,17 @@
+# Keep the build context lean and avoid copying local caches/venvs.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+htmlcov/
+.coverage
+coverage.xml
+
+# VCS / editor / logs
+.git
+.gitignore
+*.log
+.DS_Store

@@ -26,7 +26,9 @@ ENV BUILD_VERSION=$BUILD_VERSION
 
 COPY . .
 
-RUN chmod +x ./entrypoint.sh
+# Normalize line endings (a CRLF checkout on Windows would break the shebang)
+# and make the entrypoint executable.
+RUN sed -i 's/\r$//' ./entrypoint.sh && chmod +x ./entrypoint.sh
 
 EXPOSE 8000
 

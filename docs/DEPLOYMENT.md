@@ -70,6 +70,29 @@ git pull
 docker compose up -d --build
 ```
 
+## Riešenie problémov
+
+### Windows: kontajnery `backend`/`worker`/`beat`/`frontend` padajú (db a redis bežia)
+Takmer vždy ide o **CRLF konce riadkov** a/alebo **hostovský `node_modules`**:
+- Git na Windows má v predvolenom nastavení `core.autocrlf=true` a prepíše `entrypoint.sh`
+  na CRLF → shebang `#!/usr/bin/env bash` zlyhá v Linux kontajneri
+  (`env: 'bash\r': No such file or directory`) → backend/worker/beat sa reštartujú dokola.
+  Repo má `.gitattributes` (vynucuje LF) a Dockerfile CRLF aj tak odstráni pri builde, takže
+  stačí **stiahnuť aktuálnu vetvu a rebuildnúť**:
+  ```bash
+  git pull
+  docker compose build --no-cache backend worker beat
+  docker compose up -d
+  ```
+- Ak si predtým na Windows hosti spustil `npm install`, zmaž `frontend/node_modules`
+  (image si nainštaluje vlastné Linux závislosti; `.dockerignore` ho už do buildu nekopíruje):
+  ```bash
+  rmdir /s /q frontend\node_modules   # PowerShell: Remove-Item -Recurse -Force frontend\node_modules
+  docker compose build --no-cache frontend
+  docker compose up -d
+  ```
+- Diagnostika konkrétneho pádu: `docker compose logs backend` (resp. `frontend`).
+
 ## Zálohovanie
 - DB: `docker compose exec db pg_dump -U $POSTGRES_USER $POSTGRES_DB > backup.sql`
 - Alebo „Exportovať všetky dáta" (JSON) v Nastaveniach.
