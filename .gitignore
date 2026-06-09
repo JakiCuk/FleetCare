@@ -18,6 +18,8 @@ coverage.xml
 
 # ── Node / frontend ───────────────────────────────
 node_modules/
+# CI installs with `npm install` (no lockfile is committed by design).
+package-lock.json
 frontend/dist/
 frontend/dev-dist/
 *.local
