@@ -18,7 +18,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.models.car import Car, UserCarGroup
+from app.models.car import UserCarGroup
 from app.models.notification import NotificationLog
 from app.models.tire import TireMeasurement
 from app.models.user import User
